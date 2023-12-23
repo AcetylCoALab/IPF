@@ -1,0 +1,1512 @@
+#####数据矫正####
+library(limma)            
+expFile="GSEXXXXXX.txt"  
+conFile="sample1.txt"         
+treatFile="sample2.txt"      
+rt=read.table(expFile, header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+data=data[rowMeans(data)>0,]
+range(data)
+#data=log2(data+1) 
+s1=read.table(conFile, header=F, sep="\t", check.names=F)
+sampleName1=as.vector(s1[,1])
+conData=data[,sampleName1]
+s2=read.table(treatFile, header=F, sep="\t", check.names=F)
+sampleName2=as.vector(s2[,1])
+treatData=data[,sampleName2]
+data=cbind(conData, treatData)
+data=normalizeBetweenArrays(data)
+conNum=ncol(conData)
+treatNum=ncol(treatData)
+Type=c(rep("con",conNum),rep("treat",treatNum))
+outData=rbind(id=paste0(colnames(data),"_",Type),data)
+write.table(outData, file="normalize.txt", sep="\t", quote=F, col.names=F)
+
+#######ssGSEA评估免疫细胞#####
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("limma")
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("GSVA")
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("GSEABase")
+library(GSVA)
+library(limma)
+library(GSEABase)
+expFile="GSE70866.txt"     
+gmtFile="immune.gmt"   
+rt=read.table(expFile, header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+mat=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+mat=avereps(mat)
+mat=mat[rowMeans(mat)>0,]
+geneSet=getGmt(gmtFile, geneIdType=SymbolIdentifier())
+ssgseaScore=gsva(mat, geneSet, method='ssgsea', kcdf='Gaussian', abs.ranking=TRUE)
+normalize=function(x){
+  return((x-min(x))/(max(x)-min(x)))}
+ssgseaOut=normalize(ssgseaScore)
+ssgseaOut=rbind(id=colnames(ssgseaOut),ssgseaOut)
+write.table(ssgseaOut, file="ssgseaOut.txt", sep="\t", quote=F, col.names=F)
+#######ConsensusClusterPlus######
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("ConsensusClusterPlus")
+library(ConsensusClusterPlus)    
+library(Rtsne)
+library(limma)
+library(ggplot2)
+library(pheatmap) 
+expFile="ssgseaOut.txt"
+workDir="D:\\1.免疫聚类分析"  
+setwd(workDir)  
+rt=read.table(expFile, header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+mat=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(mat)
+maxK=9
+results=ConsensusClusterPlus(data,tmyPal=c('white',"#E18727FF"),
+                             maxK=maxK,
+                             reps=1000,
+                             pItem=0.8,
+                             pFeature=1,
+                             title=workDir,
+                             clusterAlg="km",
+                             distance="euclidean",
+                             seed=123456,
+                             plot="pdf",verbose=T)
+clusterNum=2  
+cluster=results[[clusterNum]][["consensusClass"]]
+cluster=as.data.frame(cluster)
+colnames(cluster)=c("Subtype")
+letter=c("A","B")
+uniqClu=levels(factor(cluster$Subtype))
+cluster$Subtype=letter[match(cluster$Subtype, uniqClu)]
+clusterOut=rbind(ID=colnames(cluster), cluster)
+write.table(clusterOut, file="cluster.txt", sep="\t", quote=F, col.names=F)
+rt=read.table('ssgseaOut.txt', header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+mat=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(mat)
+tsneOut=Rtsne(t(data), dims=2, perplexity=10, verbose=F, max_iter=500,check_duplicates=F)
+cluster=read.table('cluster.txt', header=T, sep="\t", check.names=F)
+head(cluster)
+tsne=data.frame(tSNE1 = tsneOut$Y[,1], tSNE2 = tsneOut$Y[,2], Subtype=cluster$Subtype)	
+colnames(tsne) <- c("tSNE1" ,"tSNE2" ,"Subtype")
+pdf(file="tSNE.pdf", width=5, height=4)     
+p=ggplot(data = tsne, aes(tSNE1, tSNE2)) + geom_point(aes(color = Subtype)) +
+  scale_colour_manual(name="Subtype",  values =c("#F39B7FFF","#8491B4FF"))+
+  theme_bw()+
+  theme(plot.margin=unit(rep(1.5,4),'lines'))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+print(p)
+dev.off()       
+ssgseaFile="ssgseaOut.txt"    
+clusterFile="cluster.txt"  
+Type=read.table(clusterFile, header=T, sep="\t", check.names=F, row.names=1)
+colnames(Type)=c("Subtype")
+Type=Type[order(Type[,"Subtype"],decreasing=T),,drop=F]
+Type$Subtype=factor(Type$Subtype, levels=unique(Type$Subtype))
+rt=read.table(ssgseaFile, header=T, sep="\t", check.names=F, row.names=1)
+rt=rt[,row.names(Type)]
+cluster=Type
+ann_colors=list()
+clusterCol=c("#F39B7FFF","#8491B4FF")
+names(clusterCol)=levels(factor(Type$Subtype))
+ann_colors[["Subtype"]]=clusterCol
+pdf("immheatmap.pdf", width=7, height=4)
+pheatmap(rt, annotation=cluster,
+         annotation_colors = ann_colors,
+         color = colorRampPalette(c(rep("#00A087FF",3), 'white', rep("#E18727FF",3)))(50),
+         cluster_cols =F,
+         scale="row",
+         show_colnames=F,
+         fontsize=8,
+         fontsize_row=8,
+         fontsize_col=3,
+         border_color = "black")
+dev.off()
+
+##########SUBTYPE生存分析#########
+SUR=function(inputFile=null,outFile=null,treat=null,con=null){
+  if (!require("survival", quietly = TRUE))install.packages("survival")
+  if (!require("survminer", quietly = TRUE))install.packages("survminer")
+  labs <- c(treat,con)  
+  rt=read.table(inputFile, header=T, sep="\t")
+  diff=survdiff(Surv(futime, fustat) ~group,data = rt)
+  pValue=1-pchisq(diff$chisq,df=1)
+  fit <- survfit(Surv(futime, fustat) ~ group, data = rt)
+  surPlot=ggsurvplot(fit, 
+                     data=rt,
+                     conf.int=T,
+                     pval=pValue,
+                     pval.size=6,
+                     legend.title="Subtype",
+                     legend.labs=labs,
+                     xlab="Time(years)",
+                     break.time.by = 1,
+                     palette=c("#0072B5FF","#BC3C29FF"),
+                     risk.table=F,
+                     risk.table.title="",
+                     risk.table.col = "strata",
+                     risk.table.height=.25)
+  pdf(file=outFile,onefile = FALSE,width = 6.5,height =5.5)
+  print(surPlot)
+  dev.off()
+}
+SUR(inputFile="time.txt",outFile="sur.pdf",treat="A",con="B")
+
+
+######wgcna#########
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install(c("GO.db", "preprocessCore", "impute","limma"))
+
+#install.packages(c("matrixStats", "Hmisc", "foreach", "doParallel", "fastcluster", "dynamicTreeCut", "survival")) 
+#install.packages("WGCNA")
+library(limma)
+library(WGCNA)
+expFile="GSE70866.txt"  
+cliFile="clinical.txt"     
+setwd("D:\\2.WGCNA")    
+rt=read.table(expFile, header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)), nrow=nrow(exp), dimnames=dimnames)
+data=avereps(data)
+#data=log2(data+1)
+data=data[apply(data,1,sd)>0.7,] 
+data=t(data)
+datExpr0=avereps(data)
+gsg = goodSamplesGenes(datExpr0, verbose = 3)
+if (!gsg$allOK){
+  # Optionally, print the gene and sample names that were removed:
+  if (sum(!gsg$goodGenes)>0)
+    printFlush(paste("Removing genes:", paste(names(datExpr0)[!gsg$goodGenes], collapse = ", ")))
+  if (sum(!gsg$goodSamples)>0)
+    printFlush(paste("Removing samples:", paste(rownames(datExpr0)[!gsg$goodSamples], collapse = ", ")))
+  # Remove the offending genes and samples from the data:
+  datExpr0 = datExpr0[gsg$goodSamples, gsg$goodGenes]
+}
+sampleTree = hclust(dist(datExpr0), method = "average")
+pdf(file = "1_sample_cluster.pdf", width = 12, height = 9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5, cex.axis = 1.5, cex.main = 2)
+abline(h = 10000, col = "red")
+dev.off()
+clust = cutreeStatic(sampleTree, cutHeight = 10000, minSize = 10)
+table(clust)
+keepSamples = (clust==1)
+datExpr0 = datExpr0[keepSamples, ]
+enableWGCNAThreads() 
+powers = c(1:20)    
+sft = pickSoftThreshold(datExpr0, powerVector = powers, verbose = 5)
+pdf(file="2_scale_independence.pdf",width=9,height=5)
+par(mfrow = c(1,2))
+cex1 = 0.9
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+     main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=cex1,col="red");
+abline(h=0.90,col="red") 
+plot(sft$fitIndices[,1], sft$fitIndices[,5],
+     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+     main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+dev.off()
+sft 
+softPower =5
+adjacency = adjacency(datExpr0, power = softPower)
+softPower
+TOM = TOMsimilarity(adjacency)
+dissTOM = 1-TOM
+geneTree = hclust(as.dist(dissTOM), method = "average");
+pdf(file="3_gene_clustering.pdf",width=12,height=9)
+plot(geneTree, xlab="", sub="", main = "Gene clustering on TOM-based dissimilarity",
+     labels = FALSE, hang = 0.04)
+dev.off()
+minModuleSize=40  
+dynamicMods = cutreeDynamic(dendro = geneTree, distM = dissTOM,
+                            deepSplit = 2, pamRespectsDendro = FALSE,
+                            minClusterSize = minModuleSize);
+table(dynamicMods)
+dynamicColors = labels2colors(dynamicMods)
+table(dynamicColors)
+pdf(file="4_Dynamic_Tree.pdf",width=8,height=6)
+plotDendroAndColors(geneTree, dynamicColors, "Dynamic Tree Cut",
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05,
+                    main = "Gene dendrogram and module colors")
+dev.off()
+MEList = moduleEigengenes(datExpr0, colors = dynamicColors)
+MEs = MEList$eigengenes
+MEDiss = 1-cor(MEs);
+METree = hclust(as.dist(MEDiss), method = "average")
+pdf(file="5_Clustering_module.pdf",width=7,height=7)
+plot(METree, main = "Clustering of module eigengenes",
+     xlab = "", sub = "")
+MEDissThres = 0.3 
+abline(h=MEDissThres, col = "red")
+dev.off()
+merge = mergeCloseModules(datExpr0, dynamicColors, cutHeight = MEDissThres, verbose = 3)
+mergedColors = merge$colors
+mergedMEs = merge$newMEs
+pdf(file="6_merged_dynamic.pdf", width = 9, height = 6)
+plotDendroAndColors(geneTree, mergedColors,"Dynamic Tree Cut",
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05,
+                    main = "Gene dendrogram and module colors")
+dev.off()
+moduleColors = mergedColors
+table(moduleColors)
+colorOrder = c("grey", standardColors(50))
+moduleLabels = match(moduleColors, colorOrder)-1
+MEs = mergedMEs
+cli=read.table(cliFile, header=T, sep="\t", check.names=F, row.names=1)
+sameSample=intersect(row.names(cli), row.names(MEs))
+MEs=MEs[sameSample,]
+datTraits=cli[sameSample,]
+nGenes = ncol(datExpr0)
+nSamples = nrow(datExpr0)
+moduleTraitCor = cor(MEs, datTraits, use = "p")
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples)
+pdf(file="7_Module_trait.pdf", width=6.5, height=5.2)
+textMatrix = paste(signif(moduleTraitCor, 2), "\n(",
+                   signif(moduleTraitPvalue, 1), ")", sep = "")
+dim(textMatrix) = dim(moduleTraitCor)
+par(mar = c(5, 10, 3, 3))
+labeledHeatmap(Matrix = moduleTraitCor,
+               xLabels = names(datTraits),
+               yLabels = names(MEs),
+               ySymbols = names(MEs),
+               colorLabels = FALSE,
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix,
+               setStdMargins = FALSE,
+               cex.text = 0.5,
+               zlim = c(-1,1),
+               main = paste("Module-trait relationships"))
+dev.off()
+probes = colnames(datExpr0)
+geneInfo0 = data.frame(probes= probes,
+                       moduleColor = moduleColors)
+geneOrder =order(geneInfo0$moduleColor)
+geneInfo = geneInfo0[geneOrder, ]
+write.table(geneInfo, file = "module_all.txt",sep="\t",row.names=F,quote=F)
+for (mod in 1:nrow(table(moduleColors))){  
+  modules = names(table(moduleColors))[mod]
+  probes = colnames(datExpr0)
+  inModule = (moduleColors == modules)
+  modGenes = probes[inModule]
+  write.table(modGenes, file =paste0("module_",modules,".txt"),sep="\t",row.names=F,col.names=F,quote=F)
+}
+modNames = substring(names(MEs), 3)
+geneModuleMembership = as.data.frame(cor(datExpr0, MEs, use = "p"))
+MMPvalue = as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples))
+names(geneModuleMembership) = paste("MM", modNames, sep="")
+names(MMPvalue) = paste("p.MM", modNames, sep="")
+traitNames=names(datTraits)
+geneTraitSignificance = as.data.frame(cor(datExpr0, datTraits, use = "p"))
+GSPvalue = as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples))
+names(geneTraitSignificance) = paste("GS.", traitNames, sep="")
+names(GSPvalue) = paste("p.GS.", traitNames, sep="")
+traitNames <- 'Subtype' 
+for (trait in traitNames){
+  traitColumn=match(trait,traitNames)  
+  for (module in modNames){
+    column = match(module, modNames)
+    moduleGenes = moduleColors==module
+    if (nrow(geneModuleMembership[moduleGenes,]) > 1){
+      outPdf=paste("9_", trait, "_", module,".pdf",sep="")
+      pdf(file=outPdf,width=7,height=7)
+      par(mfrow = c(1,1))
+      verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
+                         abs(geneTraitSignificance[moduleGenes, traitColumn]),
+                         xlab = paste("Module Membership in", module, "module"),
+                         ylab = paste("Gene significance for ",trait),
+                         main = paste("Module membership vs. gene significance\n"),
+                         cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = module)
+      abline(v=0.6,h=0.5,col="red")
+      dev.off()
+    }
+  }
+}
+probes = colnames(datExpr0)
+geneInfo0 = data.frame(probes= probes,
+                       moduleColor = moduleColors)
+for (Tra in 1:ncol(geneTraitSignificance))
+{
+  oldNames = names(geneInfo0)
+  geneInfo0 = data.frame(geneInfo0, geneTraitSignificance[,Tra],
+                         GSPvalue[, Tra])
+  names(geneInfo0) = c(oldNames,names(geneTraitSignificance)[Tra],
+                       names(GSPvalue)[Tra])
+}
+
+for (mod in 1:ncol(geneModuleMembership))
+{
+  oldNames = names(geneInfo0)
+  geneInfo0 = data.frame(geneInfo0, geneModuleMembership[,mod],
+                         MMPvalue[, mod])
+  names(geneInfo0) = c(oldNames,names(geneModuleMembership)[mod],
+                       names(MMPvalue)[mod])
+}
+geneOrder =order(geneInfo0$moduleColor)
+geneInfo = geneInfo0[geneOrder, ]
+write.table(geneInfo, file = "GS_MM.xls",sep="\t",row.names=F)
+#######富集分析#########
+library("clusterProfiler")
+library("enrichplot")
+library("ggplot2")
+library('org.Hs.eg.db')
+inputFile="gene.txt"  
+rt=read.table(inputFile,sep="\t",check.names=F,header=F)  
+genes=as.vector(rt[,1])  
+entrezIDs <- mget(genes, org.Hs.egSYMBOL2EG, ifnotfound=NA) 
+entrezIDs <- as.character(entrezIDs)
+
+out=cbind(rt,entrezID=entrezIDs)
+colnames(out)[1]="Gene"
+write.table(out,file="id.txt",sep="\t",quote=F,row.names=F)
+pvalueFilter=0.05      
+qvalueFilter=1         
+rt=read.table("id.txt",sep="\t",header=T,check.names=F)    
+rt=rt[is.na(rt[,"entrezID"])==F,]                           
+gene=rt$entrezID
+colorSel="qvalue"
+if(qvalueFilter>0.05){
+  colorSel="pvalue"
+}
+kk=enrichGO(gene = gene,OrgDb = org.Hs.eg.db, pvalueCutoff =0.05, qvalueCutoff = 1, ont="all", readable =T)
+kk=simplify(kk)
+GO=as.data.frame(kk)
+GO=GO[(GO$pvalue<pvalueFilter & GO$qvalue<qvalueFilter),]
+write.table(GO,file="GO.txt",sep="\t",quote=F,row.names = F)
+rt=read.table(inputFile,sep="\t",check.names=F,header=F)   
+genes=as.vector(rt[,1])      
+entrezIDs <- mget(genes, org.Hs.egSYMBOL2EG, ifnotfound=NA)   
+entrezIDs <- as.character(entrezIDs)
+out=cbind(rt,entrezID=entrezIDs)
+colnames(out)[1]="Gene"
+write.table(out,file="id.txt",sep="\t",quote=F,row.names=F)
+pvalueFilter=0.05       
+qvalueFilter=1       
+rt=read.table("id.txt",sep="\t",header=T,check.names=F)   
+rt=rt[is.na(rt[,"entrezID"])==F,] 
+colnames(rt)[1]="Gene"
+gene=rt$entrezID
+colorSel="qvalue"
+if(qvalueFilter>0.05){
+  colorSel="pvalue"
+}
+kk <- enrichKEGG(gene = gene, organism = "hsa", pvalueCutoff =1, qvalueCutoff =1)
+KEGG=as.data.frame(kk)
+KEGG$geneID=as.character(sapply(KEGG$geneID,function(x)paste(rt$Gene[match(strsplit(x,"/")[[1]],as.character(rt$entrezID))],collapse="/")))
+KEGG=KEGG[(KEGG$pvalue<pvalueFilter & KEGG$qvalue<qvalueFilter),]
+write.table(KEGG,file="KEGG.txt",sep="\t",quote=F,row.names = F)
+####单因素Cox#########
+library(limma)
+library(tidyverse)
+library(ggplot2)
+library(ggstatsplot)
+library(survival)
+library(stringr)
+library(viridis)
+library(scales)
+rt=read.table("GSE70866.txt",sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+data=data[rowMeans(data)>0,]
+range(data)
+#data=log2(data+1)
+gene=read.table("gene.txt", header=F, check.names=F, sep="\t")
+sameGene=intersect(as.vector(gene[,1]),rownames(data))
+geneExp=data[sameGene,]
+out=rbind(ID=colnames(geneExp),geneExp)
+write.table(out,file="geneexp.txt",sep="\t",quote=F,col.names=F)
+expFile="geneexp.txt"     
+cliFile="time.txt"          
+rt=read.table(expFile,sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+data=data[rowMeans(data)>0,]
+data=t(data)
+data=avereps(data)
+cli=read.table(cliFile,sep="\t",check.names=F,header=T,row.names=1)   
+sameSample=intersect(row.names(data),row.names(cli))
+data=data[sameSample,]
+cli=cli[sameSample,]
+out=cbind(cli,data)
+out=cbind(id=row.names(out),out)
+write.table(out,file="expTime.txt",sep="\t",row.names=F,quote=F)
+realdata <- read.table("expTime.txt",sep="\t",header=T,check.names=F,row.names = 1)
+realdata[1:3,1:6]
+Coxoutput=data.frame()
+for(i in colnames(realdata[,3:ncol(realdata)])){
+  cox <- coxph(Surv(futime, fustat) ~ realdata[,i], data = realdata)
+  coxSummary = summary(cox)
+  Coxoutput=rbind(Coxoutput,cbind(gene=i,HR=coxSummary$coefficients[,"exp(coef)"],
+                                  z=coxSummary$coefficients[,"z"],
+                                  pvalue=coxSummary$coefficients[,"Pr(>|z|)"],
+                                  lower=coxSummary$conf.int[,3],
+                                  upper=coxSummary$conf.int[,4]))
+}
+for(i in c(2:6)){
+  Coxoutput[,i] <- as.numeric(as.vector(Coxoutput[,i]))
+}
+Coxoutput <- arrange(Coxoutput,pvalue)  %>%
+  filter(pvalue < 0.05) 
+write.csv(Coxoutput,'cox_output.csv', row.names = F)
+Coxoutput <- read.csv("cox_output.csv")
+head(Coxoutput)
+plotCoxoutput <- Coxoutput
+plotCoxoutput$gene <- factor(plotCoxoutput$gene,levels =rev(plotCoxoutput$gene) )
+pdf(file='unifost.pdf', width=5, height=8)
+ggplot(data=plotCoxoutput ,aes(x=HR,y=gene,color=pvalue))+
+  geom_errorbarh(aes(xmax=upper,xmin=lower,color = pvalue),height=0,size=1.2)+
+  geom_point(aes(x=HR,y=gene),size=3.5,shape=18)+ 
+  geom_vline(xintercept = 1,linetype='dashed',size=1.2)+
+  scale_x_continuous(breaks = c(0.75,1,1.30))+
+  coord_trans(x='log2')+ 
+  ylab("Gene")+ 
+  xlab("Hazard ratios of gene")+ 
+  labs(color="P value",title ="" )+
+  scale_color_viridis()+ 
+  theme_ggstatsplot()+  theme_bw()+  
+  theme(panel.grid =element_blank()) 
+dev.off()
+
+
+########区分训练集和验证集########
+setwd('D:\\5.区分训练集和验证集')
+library(limma)
+library(survival)
+library(caret)
+library(glmnet)
+library(survminer)
+library(timeROC)
+rt=read.table("geneexp.txt",sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+data=data[rowMeans(data)>0,]
+range(data)
+#data=log2(data+1)
+gene=read.table("gene.txt", header=F, check.names=F, sep="\t")
+sameGene=intersect(as.vector(gene[,1]),rownames(data))
+geneExp=data[sameGene,]
+out=rbind(ID=colnames(geneExp),geneExp)
+write.table(out,file="geneexp.txt",sep="\t",quote=F,col.names=F)
+expFile="geneexp.txt"     
+cliFile="time.txt"          
+rt=read.table(expFile,sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+data=data[rowMeans(data)>0,]
+data=t(data)
+data=avereps(data)
+cli=read.table(cliFile,sep="\t",check.names=F,header=T,row.names=1)   
+sameSample=intersect(row.names(data),row.names(cli))
+data=data[sameSample,]
+cli=cli[sameSample,]
+out=cbind(cli,data)
+out=cbind(id=row.names(out),out)
+write.table(out,file="expTime.txt",sep="\t",row.names=F,quote=F)
+rt=read.table("expTime.txt", header=T, sep="\t", check.names=F, row.names=1)  
+inTrain<-createDataPartition(y=rt[,3], p=0.7, list=F)
+train<-rt[inTrain,]
+test<-rt[-inTrain,]
+trainOut=cbind(id=row.names(train), train)
+testOut=cbind(id=row.names(test), test)
+write.table(trainOut,file="train.data.txt",sep="\t",quote=F,row.names=F)
+write.table(testOut,file="test.data.txt",sep="\t",quote=F,row.names=F)
+trainFile="train.data.txt"   
+testFile="test.data.txt"   
+cliFile="clinical.txt"
+train=read.table(trainFile, header=T, sep="\t", check.names=F, row.names=1)
+test=read.table(testFile, header=T, sep="\t", check.names=F, row.names=1)
+cli=read.table(cliFile, header=T, sep="\t", check.names=F, row.names=1)
+cli[,"Age"]=ifelse(cli[,"Age"]=="unknow", "unknow", ifelse(cli[,"Age"]>65,">65","<=65"))
+trainCli=cli[row.names(train),]
+trainCli=cbind(trainCli, Type="Train")
+testCli=cli[row.names(test),]
+testCli=cbind(testCli, Type="Test")
+rt=rbind(trainCli, testCli)
+cliStatOut=data.frame()
+for(i in 1:(ncol(rt)-1)){
+  nameStat=colnames(rt)[i]
+  tableStat=table(rt[,c(nameStat,"Type")])
+  tableStatSum=cbind(Total=rowSums(tableStat), tableStat)
+  tableStatRatio=prop.table(tableStatSum,2)
+  tableStatRatio=round(tableStatRatio*100,2)
+  tableStatPaste=paste(tableStatSum,"(",tableStatRatio,"%)",sep="")
+  tableStatOut=matrix(tableStatPaste,ncol=3,dimnames=dimnames(tableStatSum))
+  pStat=chisq.test(tableStat[row.names(tableStat)!="unknow",])
+  pValueStat=round(pStat$p.value,4)
+  pValueCol=c(pValueStat,rep(" ",(nrow(tableStatOut)-1)) )
+  tableStatOut=cbind(Covariates=nameStat,Type=row.names(tableStatOut),tableStatOut,Pvalue=pValueCol)
+  cliStatOut=rbind(cliStatOut,tableStatOut)
+}
+write.table(cliStatOut,file="cliStat.result.xls",sep="\t",quote=F,row.names=F)
+
+
+
+######ML#######
+https://github.com/Zaoqu-Liu/IRLS
+####模型生存曲线和ROC分析####
+setwd('D:\\7.模型生存曲线和ROC分析')
+library(survival)
+library(survminer)
+library(timeROC)
+library(pheatmap)
+library(limma)
+inputFile="expTime.txt"        
+data=read.table(inputFile,header=T,sep="\t")
+Cohort <- c('Train','Test')
+for (i in Cohort) {
+  rt <- subset(data,Cohort1 == i)
+  ROC_rt=timeROC(T=rt$futime,delta=rt$fustat,
+                 marker=rt$IRS,cause=1,
+                 weighting='aalen',
+                 times=c(1,2,3),ROC=TRUE)
+  pdf(file=paste0(i,'roc.pdf'), width=4.44, height=4.55)
+  plot(ROC_rt,time=1,col="#BC3C29FF",title=FALSE,lwd=2)
+  plot(ROC_rt,time=2,col="#0072B5FF",add=TRUE,title=FALSE,lwd=2)
+  plot(ROC_rt,time=3,col="#E18727FF",add=TRUE,title=FALSE,lwd=2)
+  legend('bottomright',
+         c(paste0('AUC at 1 years: ',round(ROC_rt$AUC[1],3)),
+           paste0('AUC at 2 years: ',round(ROC_rt$AUC[2],3)),
+           paste0('AUC at 3 years: ',round(ROC_rt$AUC[3],3))),
+         col=c("#BC3C29FF","#0072B5FF","#E18727FF"),lwd=4,bty = 'n')
+  dev.off()
+  
+}
+
+inputFile="expTime.txt"      
+data=read.table(inputFile,header=T,sep="\t")
+Cohort <- c('LEUVEN',
+            'Freiburg',
+            'SIENA'
+)
+for (i in Cohort) {
+  rt <- subset(data,Cohort2 == i)
+  ROC_rt=timeROC(T=rt$futime,delta=rt$fustat,
+                 marker=rt$IRS,cause=1,
+                 weighting='aalen',
+                 times=c(1,2,3),ROC=TRUE)
+  pdf(file=paste0(i,'roc.pdf'), width=4.44, height=4.55)
+  plot(ROC_rt,time=1,col="#BC3C29FF",title=FALSE,lwd=2,main = "TCGA")
+  plot(ROC_rt,time=2,col="#0072B5FF",add=TRUE,title=FALSE,lwd=2,main ="TCGA")
+  plot(ROC_rt,time=3,col="#E18727FF",add=TRUE,title=FALSE,lwd=2,main = "TCGA")
+  legend('bottomright',
+         c(paste0('AUC at 1 years: ',round(ROC_rt$AUC[1],3)),
+           paste0('AUC at 2 years: ',round(ROC_rt$AUC[2],3)),
+           paste0('AUC at 3 years: ',round(ROC_rt$AUC[3],3))),
+         col=c("#BC3C29FF","#0072B5FF","#E18727FF"),lwd=4,bty = 'n')
+  dev.off()
+  
+}
+data <- read.table("expTime.txt", header=T, sep="\t", check.names=F,row.names = 1)
+colnames(data)=c( "fustat", "futime","gene",'Cohort1','Cohort2')
+data <- subset(data,Cohort1 == 'Train')
+res.cut=surv_cutpoint(data, time = "futime", event = "fustat", variables =c("gene"))
+summary(res.cut)
+plot(res.cut, "gene", palette = "npg")
+res.cat=surv_categorize(res.cut)
+write.table(res.cat,file="Trainmerge.txt",sep="\t",quote=F,col.names = NA)
+fit=survfit(Surv(futime, fustat) ~gene, data = res.cat)
+diff=survdiff(Surv(futime, fustat) ~gene,data =res.cat)
+pValue=1-pchisq(diff$chisq, df=1)
+broom::glance(diff)
+pdf(file='Trainsur.pdf', width=4, height=4)
+p <-  ggsurvplot(fit,
+                 data=res.cat,
+                 pval=pValue,
+                 pval.size=6,
+                 legend.title='IRS',
+                 legend.labs=c("high","low"),
+                 xlab="Time(years)",
+                 ylab="Overall survival",
+                 palette=c("#BC3C29FF","#0072B5FF"),
+                 break.time.by=5,
+                 conf.int=T,
+                 risk.table=F,
+                 risk.table.title="",
+                 risk.table.height=.25,
+                 ggtheme = theme_bw(), 
+                 main = "Survival curve",
+                 font.main = c(35, "bold", "darkblue")
+   )
+print(p, newpage = FALSE)
+dev.off()
+
+rt <- read.table("expTime.txt", header=T, sep="\t", check.names=F,row.names = 1)
+Cohort <- c('Test','Train'
+)
+for (i in Cohort) {
+   data <- subset(rt,Cohort == i)
+  colnames(data)=c(  "fustat", "futime","gene",'Cohort')
+  Type=ifelse(data[,'gene']<= 0.1078487, "low", "high")
+  data$group=Type
+  data$group=factor(data$group, levels=c( "high","low"))
+  diff=survdiff(Surv(futime, fustat) ~ group, data = data)
+  length=length(levels(factor(data[,"group"])))
+  pValue=1-pchisq(diff$chisq, df=length-1)
+  fit <- survfit(Surv(futime, fustat) ~ group, data = data)
+  pdf(file=paste0(i,'sur.pdf'), width=4, height=4)
+  p <- ggsurvplot(fit,
+                  data=data,
+                  pval=pValue,
+                  pval.size=6,
+                  legend.title='IRS',
+                  legend.labs=c("high","low"),
+                  xlab="Time(years)",
+                  ylab="Overall survival",
+                  palette=c("#BC3C29FF","#0072B5FF"),
+                  break.time.by=2,
+                  conf.int=T,
+                  risk.table=F,
+                  risk.table.title="",
+                  risk.table.height=.25,
+                  ggtheme = theme_bw(), 
+                  main = "Survival curve"
+      )
+  print(p, newpage = FALSE)
+  dev.off()
+  
+}
+
+
+
+######风险免疫浸润热图######
+library(pheatmap)             
+ssgseaFile="ssgseaOut.txt"      
+clusterFile="expTime.txt"  
+Type=read.table(clusterFile, header=T, sep="\t", check.names=F, row.names=1)
+colnames(Type)=c('IRS',"Cluster",'Cohort','Group')
+Type=Type[order(Type[,"IRS"],decreasing=T),,drop=F]
+Type$Cluster=factor(Type$Cluster, levels=unique(Type$Cluster))
+rt=read.table(ssgseaFile, header=T, sep="\t", check.names=F, row.names=1)
+rt=rt[,row.names(Type)]
+cluster=Type
+ann_colors=list()
+clusterCol=c("#F39B7FFF","#8491B4FF")
+names(clusterCol)=levels(factor(Type$Cluster))
+ann_colors[["Cluster"]]=clusterCol
+GroupCol=c("#208A42","#89288F","#F47D2B")
+names(GroupCol)=levels(factor(Type$Group))
+ann_colors[["Group"]]=GroupCol
+CohortCol=c("#BC3C29FF","#272E6A")
+names(CohortCol)=levels(factor(Type$Cohort))
+ann_colors[["Cohort"]]=CohortCol
+pdf("estimateHM.pdf", width=6, height=4)
+pheatmap(rt, annotation=cluster,
+         annotation_colors = ann_colors,
+         color = colorRampPalette(c(rep("#00A087FF",3), 'white', rep("#E18727FF",3)))(50),
+         cluster_cols =F,
+         scale="row",
+         show_colnames=F,
+         fontsize=8,
+         fontsize_row=8,
+         fontsize_col=3,
+         border_color = "black")
+dev.off()
+
+library(ggplot2)
+library(ggcor)
+mtcars=t(read.table('coexep.txt',sep="\t",header=T,check.names=F,row.names = 1))
+colnames(mtcars) 
+quickcor(mtcars) + geom_square() 
+mycolors <- c( "#1f294e", "#5390b5", "#eaebea","#d56e5e","#57121d")
+data.cor <- correlate(mtcars,
+                      cor.test = TRUE, 
+                      method = "pearson",
+                      use = "everything",
+                      p.adjust = FALSE, 
+                      p.adjust.method = "holm",
+) 
+
+data.plot <- as_cor_tbl(data.cor, 
+                        show.diag = TRUE,
+                        cluster = TRUE, 
+                        cluster.method = "complete" 
+) 
+
+p <- quickcor(mtcars, 
+              type = c("lower", "upper", "full")[3], 
+              cluster =T,  
+              is.cor = F,  
+              circular = F, 
+              grid.colour = "black", 
+              grid.size = 0.25,  
+              show.diag = T, 
+              cor.test = TRUE,
+              method = "pearson") +
+  geom_pie2(data = get_data(type = "lower"))+ 
+   geom_mark(data = get_data(type = "upper", r != 1, p.value < 0.05, abs(r) >= 0.3), #
+            size = 2.5 
+           )+
+  geom_cross(data = get_data(type = "lower"), colour = "orange")+ 
+  
+  scale_fill_gradientn(colours = mycolors,  
+                       breaks = c(-0.6, 0, 0.6)) +  
+  labs(fill = "Correlation")
+pdf(file='correlation.pdf', width=12, height=12)
+print(p)
+dev.off()
+########代谢分析########
+library(GSVA)
+library(limma)
+library(GSEABase)
+expFile="GSE70866.txt"   
+gmtFile="KEGG_metabolism_nc.gmt"    
+rt=read.table(expFile, header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+mat=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+mat=avereps(mat)
+mat=mat[rowMeans(mat)>0,]
+geneSet=getGmt(gmtFile, geneIdType=SymbolIdentifier())
+ssgseaScore=gsva(mat, geneSet, method='ssgsea', kcdf='Gaussian', abs.ranking=TRUE)
+normalize=function(x){
+  return((x-min(x))/(max(x)-min(x)))}
+ssgseaOut=normalize(ssgseaScore)
+ssgseaOut=rbind(id=colnames(ssgseaOut),ssgseaOut)
+write.table(ssgseaOut, file="ssgseaOut.txt", sep="\t", quote=F, col.names=F)
+
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("limma")
+
+#install.packages("ggplot2")
+#install.packages("ggpubr")
+#install.packages("ggExtra")
+
+library(limma)
+library(ggplot2)
+library(ggpubr)
+library(ggExtra)
+
+gene="IRS"             
+corFilter=0.3         
+pFilter=0.05       
+expFile="ssgseaOut.txt"    
+rt=read.table(expFile, header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp), colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)), nrow=nrow(exp), dimnames=dimnames)
+x=as.numeric(data[gene,])
+outTab=data.frame()
+for(j in rownames(data)){
+  if(gene==j){next}
+  y=as.numeric(data[j,])
+  corT=cor.test(x, y, method = 'pearson')
+  cor=corT$estimate
+  pvalue=corT$p.value
+  outTab=rbind(outTab, cbind(Query=gene, Gene=j, cor, pvalue))
+if((abs(cor)>corFilter) & (pvalue<pFilter)){
+    df1=as.data.frame(cbind(x,y))
+    p1=ggplot(df1, aes(x, y)) + 
+      xlab(paste0(gene))+ ylab(j)+
+      geom_point()+ geom_smooth(method="lm", formula=y~x) + theme_bw()+
+      stat_cor(method = 'pearson', aes(x =x, y =y))
+    pdf(file=paste0("cor.", j, ".pdf"), width=5, height=4.6)
+    print(p1)
+    dev.off()
+  }
+}
+write.table(file="corResult.txt", outTab, sep="\t", quote=F, row.names=F)
+
+
+
+########GSEA#########
+library(FactoMineR)
+library(factoextra)
+library(ggplot2)
+library(limma)
+library(pheatmap)
+library(ggplot2)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(GSEABase)
+library(enrichplot)
+library(GseaVis)
+library(dplyr)
+logFCfilter=1       
+adjPfilter=0.05                 
+expFile="GSEXXXXX.txt"         
+conFile="sample1.txt"          
+treatFile="sample2.txt"         
+rt=read.table(expFile,sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+range(data)
+#data=log2(data+1)  
+data=normalizeBetweenArrays(data)
+sample1=read.table(conFile,sep="\t",header=F,check.names=F)
+sample2=read.table(treatFile,sep="\t",header=F,check.names=F)
+conData=data[,as.vector(sample1[,1])]
+treatData=data[,as.vector(sample2[,1])]
+rt=cbind(conData,treatData)
+conNum=ncol(conData)
+treatNum=ncol(treatData)
+Type=c(rep("con",conNum),rep("treat",treatNum))
+table(Type)
+dat1 <-as.data.frame(t(rt))
+dat1$group_list1 <- Type
+dat_pca1 <- PCA(dat1[,-ncol(dat1)], graph = FALSE)
+fviz_pca_ind(dat_pca1,
+             geom.ind = c("point",'text'), 
+             col.ind = dat1$group_list1, 
+             palette = c("#BC3C29FF","#0072B5FF"),
+             addEllipses = T,
+             legend.title = "Groups") + theme_bw()
+Type=c(rep("con",conNum),rep("treat",treatNum))
+design <- model.matrix(~0+factor(Type))
+colnames(design) <- c("con","treat")
+fit <- lmFit(rt,design)
+cont.matrix<-makeContrasts(treat-con,levels=design)
+fit2 <- contrasts.fit(fit, cont.matrix)
+fit2 <- eBayes(fit2)
+allDiff=topTable(fit2,adjust='fdr',number=200000)
+write.table(allDiff,file="GEO_all.xls",sep="\t",quote=F)
+R.utils::setOption( "clusterProfiler.download.method",'auto' )
+deg<- read.table('gene.txt', header=T, sep="\t", check.names=F)
+head(deg)
+enter <- bitr(deg$gene, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = "org.Hs.eg.db",drop = T)
+degmerge=merge(x=deg,y=enter,by.x = "gene",by.y = "SYMBOL") 
+genelist=degmerge$logFC
+names(genelist)=toupper(degmerge[,'gene'])
+geneList=sort(genelist,decreasing = T)
+go <- gseGO(geneList     =  geneList,keyType ='SYMBOL',
+            OrgDb        = org.Hs.eg.db,
+            ont          ='BP', pvalueCutoff = 0.99,  pAdjustMethod = "BH")
+print(go@result[["ID"]])
+result <- go@result
+result =rbind(ID=colnames(result ), result )
+write.table(result , file="GO.GSEA.txt", sep="\t", col.names=F, quote=F)
+ggterm <- go@result[["ID"]][1:length(go@result[["ID"]])]
+lapply(1:length(ggterm), function(i){
+  gseaNb(object =go, 
+         geneSetID =ggterm[i], newGsea = F,
+         termWidth = 30,
+       
+         arrowType = 'open',
+         geneCol = 'black',
+         subPlot = 3,rmSegment = F,
+         addPval = T,pvalX = 0.75,pvalY = 0.8,nesDigit = 4,pDigit = 4,
+         pCol = 'black', pHjust = 0,
+         addGene = T,markTopgene = T,topGeneN = 20, 
+         kegg =F, lineSize = 2 
+  )+theme_classic()
+  ggsave(paste0(gsub("/","_",go@result[["Description"]][i]),".pdf"),width=7.48,height=7)
+})
+
+#######在健康和疾病组的差异表达######
+library(FactoMineR)
+library(factoextra)
+library(ggplot2)
+library(limma)
+library(pheatmap)
+logFCfilter=1       
+adjPfilter=0.05                  
+expFile="GSEXXXXX.txt"         
+conFile="sample1.txt"           
+treatFile="sample2.txt"          
+rt=read.table(expFile,sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+range(data)
+sample1=read.table(conFile,sep="\t",header=F,check.names=F)
+sample2=read.table(treatFile,sep="\t",header=F,check.names=F)
+conData=data[,as.vector(sample1[,1])]
+treatData=data[,as.vector(sample2[,1])]
+rt=cbind(conData,treatData)
+conNum=ncol(conData)
+treatNum=ncol(treatData)
+Type=c(rep("con",conNum),rep("treat",treatNum))
+table(Type)
+dat1 <-as.data.frame(t(rt))
+dat1$group_list1 <- Type
+dat_pca1 <- PCA(dat1[,-ncol(dat1)], graph = FALSE)
+fviz_pca_ind(dat_pca1,
+             geom.ind = c("point",'text'), 
+             col.ind = dat1$group_list1, 
+             palette = c("#E64B35FF","#4DBBD5FF"),
+             addEllipses = T,
+             legend.title = "Groups") + theme_bw()
+Type=c(rep("con",conNum),rep("treat",treatNum))
+design <- model.matrix(~0+factor(Type))
+colnames(design) <- c("con","treat")
+fit <- lmFit(rt,design)
+cont.matrix<-makeContrasts(treat-con,levels=design)
+fit2 <- contrasts.fit(fit, cont.matrix)
+fit2 <- eBayes(fit2)
+allDiff=topTable(fit2,adjust='fdr',number=200000)
+write.table(allDiff,file="GEO_all.xls",sep="\t",quote=F)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+#阈值确定：
+pvalue= 0.05
+log2FC= 1
+df <-allDiff
+colnames(df)
+df$id <- rownames(df)
+colnames(df) <- c("log2FoldChange", "AveExpr" ,  "t"  ,  "pvalue" , "adj.P.Val" ,"B",'id'  )
+df$group <- case_when(
+  df$log2FoldChange > log2FC & df$pvalue < pvalue ~"up",
+  df$log2FoldChange < -log2FC & df$pvalue < pvalue ~"down",
+  TRUE~ 'notsig'
+)
+head(df)
+df$'-log10(pvalue)' <- -log10(df$pvalue)
+df$group <- factor(df$group, levels = c("up","down","notsig"))
+
+mycol<- c("#BC3C29FF","#0072B5FF","#d8d8d8")
+mytheme<- theme_classic() +
+  theme(axis.title = element_text(size = 15),
+        axis.text = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        plot.margin = margin(15,5.5,5.5,5.5))
+p<- ggplot(data = df,
+           aes(x = log2FoldChange,
+               y= -log10(pvalue),
+               color= group)) +
+  geom_point(size = 2.2) +
+  scale_colour_manual(name ="", values = alpha(mycol, 0.7)) +
+  scale_x_continuous(limits = c(-4, 4),
+                     breaks= seq(-4, 4, by = 1)) +
+  scale_y_continuous(
+    limits= c(0, 15),
+    breaks= seq(0, 15, by = 3)) +
+  geom_hline(yintercept = c(-log10(pvalue)),size = 0.7,color ="black",lty ="dashed") +
+  geom_vline(xintercept = c(-log2FC, log2FC),size = 0.7,color ="black",lty ="dashed") +
+  mytheme+theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p
+
+p2<- p +
+  geom_point(data = up,
+             aes(x = log2FoldChange, y = -log10(pvalue)),
+             color= "#BC3C29FF", size = 4.5, alpha = 0.2) +
+  geom_text_repel(data = up,
+                  aes(x = log2FoldChange, y = -log10(pvalue), label = id),
+                  seed= 233,
+                  size= 3.5,
+                  color= 'black',
+                  min.segment.length = 0,
+                  force= 2,
+                  force_pull= 2,
+                  box.padding = 0.1,
+                  max.overlaps = Inf,
+                  segment.linetype = 3,
+                  segment.color = 'black',
+                  segment.alpha = 0.5,
+                  nudge_x= 3 - up$log2FoldChange,
+                  direction="y",
+                  hjust= 0
+  ) +
+  geom_point(data = down,
+             aes(x = log2FoldChange, y = -log10(pvalue)),color = "#0072B5FF",size = 4.5, alpha = 0.2) +
+  geom_text_repel(data = down,
+                  aes(x = log2FoldChange, y = -log10(pvalue), label = id),
+                  seed= 233,
+                  size= 3.5,
+                  color= 'black',
+                  min.segment.length = 0,
+                  force= 2,
+                  force_pull= 2,
+                  box.padding = 0.1,
+                  max.overlaps = Inf,
+                  segment.linetype = 3,
+                  segment.color = 'black',
+                  segment.alpha = 0.8,
+                  nudge_x= -3 - down$log2FoldChange,
+                  direction="y",
+                  hjust= 1
+  )
+p2
+
+
+rt=read.table("GSE70866.txt",sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+data=data[rowMeans(data)>0,]
+range(data)
+#data=log2(data+1)
+gene=read.table("gene.txt", header=F, check.names=F, sep="\t")
+sameGene=intersect(as.vector(gene[,1]),rownames(data))
+geneExp=data[sameGene,]
+out=rbind(ID=colnames(geneExp),geneExp)
+write.table(out,file="geneexp.txt",sep="\t",quote=F,col.names=F)
+library(limma)
+expFile="geneexp.txt"     
+cliFile="time.txt"          
+rt=read.table(expFile,sep="\t",header=T,check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp),colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)),nrow=nrow(exp),dimnames=dimnames)
+data=avereps(data)
+data=data[rowMeans(data)>0,]
+data=t(data)
+data=avereps(data)
+cli=read.table(cliFile,sep="\t",check.names=F,header=T,row.names=1)   
+
+sameSample=intersect(row.names(data),row.names(cli))
+data=data[sameSample,]
+cli=cli[sameSample,]
+out=cbind(cli,data)
+out=cbind(id=row.names(out),out)
+write.table(out,file="expTime.txt",sep="\t",row.names=F,quote=F)
+library(tidyverse)
+library(ggplot2)
+library(ggstatsplot)
+library(survival)
+library(stringr)
+library(viridis)
+library(scales)
+realdata <- read.table("expTime.txt",sep="\t",header=T,check.names=F,row.names = 1)
+realdata[1:3,1:6]
+Coxoutput=data.frame()
+for(i in colnames(realdata[,3:ncol(realdata)])){
+  cox <- coxph(Surv(futime, fustat) ~ realdata[,i], data = realdata)
+  coxSummary = summary(cox)
+  Coxoutput=rbind(Coxoutput,cbind(gene=i,HR=coxSummary$coefficients[,"exp(coef)"],
+                                  z=coxSummary$coefficients[,"z"],
+                                  pvalue=coxSummary$coefficients[,"Pr(>|z|)"],
+                                  lower=coxSummary$conf.int[,3],
+                                  upper=coxSummary$conf.int[,4]))
+}
+for(i in c(2:6)){
+  Coxoutput[,i] <- as.numeric(as.vector(Coxoutput[,i]))
+}
+Coxoutput <- arrange(Coxoutput,pvalue)  %>% 
+  filter(pvalue < 0.05) 
+write.csv(Coxoutput,'cox_output2.csv', row.names = F)
+
+Coxoutput <- read.csv("cox_output2.csv")
+head(Coxoutput)
+plotCoxoutput <- Coxoutput
+plotCoxoutput$gene <- factor(plotCoxoutput$gene,levels =rev(plotCoxoutput$gene) )
+pdf(file='unifost.pdf', width=5, height=17)
+ggplot(data=plotCoxoutput ,aes(x=HR,y=gene,color=pvalue))+
+  geom_errorbarh(aes(xmax=upper,xmin=lower,color = pvalue),height=0,size=1.2)+
+  geom_point(aes(x=HR,y=gene),size=3.5,shape=18)+  
+  geom_vline(xintercept = 1,linetype='dashed',size=1.2)+
+  scale_x_continuous(breaks = c(0.75,1,1.30))+
+  coord_trans(x='log2')+ 
+  ylab("Gene")+ 
+  xlab("Hazard ratios of gene")+ 
+  labs(color="P value",title ="" )+
+  scale_color_viridis()+ 
+  theme_ggstatsplot()+  theme_bw()+  
+  theme(panel.grid =element_blank()) 
+dev.off()
+
+##########AUC######
+library(pROC)
+library(foreach)
+library(doParallel)
+expFile="GSEXXXX.txt"     
+geneFile="gene.txt"       
+rt <- read.table(expFile, header=T, sep="\t", check.names=F, row.names=1)
+y <- gsub("(.*)\\_(.*)", "\\2", colnames(rt))
+y <- ifelse(y=="con", 0, 1)
+geneRT <- read.table(geneFile, header=F, sep="\t", check.names=F)
+genes <- as.vector(geneRT[,1])
+cores <- detectCores()
+cl <- makeCluster(cores)
+registerDoParallel(cl)
+roc_list <- foreach(x=genes, .combine=rbind) %dopar% {
+  roc1 <- pROC::roc(y, as.numeric(rt[x,]))
+  ci1 <- pROC::ci.auc(roc1, method="bootstrap")
+  ciVec <- as.numeric(ci1)
+  auc <- ciVec[2]
+  data.frame(gene=x, auc=auc)
+}
+stopCluster(cl)
+print(roc_list)
+write.table(roc_list, file="roc.txt", sep="\t", quote=F, col.names=T)
+##########PLAG7生存曲线####
+library(limma)
+library(survival)
+library(survminer)
+data <- read.table("expTime.txt", header=T, sep="\t", check.names=F,row.names = 1)
+colnames(data)=c(  "futime","fustat","gene")
+data$futime=data$futime/365
+res.cut=surv_cutpoint(data, time = "futime", event = "fustat", variables =c("gene"))
+summary(res.cut)
+plot(res.cut, "gene", palette = "npg")
+res.cat=surv_categorize(res.cut)
+fit=survfit(Surv(futime, fustat) ~gene, data = res.cat)
+diff=survdiff(Surv(futime, fustat) ~gene,data =res.cat)
+pValue=1-pchisq(diff$chisq, df=1)
+broom::glance(diff)
+pdf(file='PLAG7sur.pdf', width=4, height=4)
+p <-  ggsurvplot(fit,
+                 data=res.cat,
+                 pval=pValue,
+                 pval.size=6,
+                 legend.title='PLAG7',
+                 legend.labs=c("high","low"),
+                 xlab="Time(years)",
+                 ylab="Overall survival",
+                 palette=c( "#CB5746","#4195C1"),
+                 break.time.by=1,
+                 conf.int=T,
+                 risk.table=F,
+                 risk.table.title="",
+                 risk.table.height=.25,
+                 ggtheme = theme_bw(), 
+                 main = "Survival curve",
+                 font.main = c(35, "bold", "darkblue"),
+  )
+print(p, newpage = FALSE)
+dev.off()
+#########PLA2G7和免疫细胞相关性分析########
+library(limma)
+library(ggplot2)
+library(ggpubr)
+library(ggExtra)
+
+gene="PLA2G7"           
+corFilter=0.2          
+pFilter=0.05       
+expFile="ssgseaOut.txt"     
+rt=read.table(expFile, header=T, sep="\t", check.names=F)
+rt=as.matrix(rt)
+rownames(rt)=rt[,1]
+exp=rt[,2:ncol(rt)]
+dimnames=list(rownames(exp), colnames(exp))
+data=matrix(as.numeric(as.matrix(exp)), nrow=nrow(exp), dimnames=dimnames)
+x=as.numeric(data[gene,])
+outTab=data.frame()
+for(j in rownames(data)){
+  if(gene==j){next}
+  y=as.numeric(data[j,])
+  corT=cor.test(x, y, method = 'pearson')
+  cor=corT$estimate
+  pvalue=corT$p.value
+  outTab=rbind(outTab, cbind(Query=gene, Gene=j, cor, pvalue))
+  if((abs(cor)>corFilter) & (pvalue<pFilter)){
+    df1=as.data.frame(cbind(x,y))
+    p1=ggplot(df1, aes(x, y)) + 
+      xlab(paste0(gene))+ ylab(j)+
+      geom_point()+ geom_smooth(method="lm", formula=y~x) + theme_bw()+
+      stat_cor(method = 'pearson', aes(x =x, y =y))
+    pdf(file=paste0("cor.", j, ".pdf"), width=5, height=4.6)
+    print(p1)
+    dev.off()
+  }
+}
+write.table(file="corResult.txt", outTab, sep="\t", quote=F, row.names=F)
+######单细胞分析#####
+library(data.table)
+library(Seurat)
+library(ggplot2)
+library(cowplot)
+library(dplyr)
+library(ggunchull)
+library(tidydr)
+library(ggsci)
+library(Cairo)
+samples=list.files('/home')
+samples 
+sceList = lapply(samples,function(pro){ 
+  folder=file.path('/home',pro) 
+  print(pro)
+  print(folder)
+  print(list.files(folder))
+  sce=CreateSeuratObject(counts = Read10X(folder),
+                         project =  pro )
+  
+  return(sce)
+})
+names(sceList) =  samples
+samples
+sce.all <- merge(sceList[[1]], y= sceList[ -1 ] ,
+                 add.cell.ids=samples )
+sample_color <- c("#E64B35FF","#4DBBD5FF","#00A087FF","#3C5488FF", "#F39B7FFF","#8491B4FF",
+                  "#91D1C2FF","#DC0000FF","#7E6148FF","#BC3C29FF","#0072B5FF","#E18727FF","#D24B27","#D51F26","#272E6A")
+mito_genes=rownames(sce.all)[grep("^mt-", rownames(sce.all))] 
+mito_genes 
+sce.all=PercentageFeatureSet(sce.all, "^mt-", col.name = "percent_mito")
+fivenum(sce.all@meta.data$percent_mito)
+ribo_genes=rownames(sce.all)[grep("^Rp[sl]", rownames(sce.all),ignore.case = T)]
+ribo_genes
+sce.all=PercentageFeatureSet(sce.all, "^Rp[sl]", col.name = "percent_ribo")
+fivenum(sce.all@meta.data$percent_ribo)
+rownames(sce.all)[grep("^Hb[^(p)]", rownames(sce.all))]
+sce.all=PercentageFeatureSet(sce.all, "^Hb[^(p)]", col.name = "percent_hb")
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb")
+p1=VlnPlot(sce.all, group.by = "orig.ident", features = feats, pt.size = 0, ncol = 2,cols =sample_color) + 
+  NoLegend()
+p1
+feats <- c("percent_mito", "percent_ribo", "percent_hb")
+p2=VlnPlot(sce.all, group.by = "orig.ident", features = feats, pt.size = 0.01, ncol = 3, same.y.lims=T) + 
+  scale_y_continuous(breaks=seq(0, 100, 5)) +
+  NoLegend()+
+  scale_color_manual(values=sample_color) 
+p2 
+p3=FeatureScatter(sce.all, "nCount_RNA", "nFeature_RNA", group.by = "orig.ident", pt.size = 0.5)+
+  scale_color_manual(values=sample_color) 
+p3=FeatureScatter(sce.all, "percent_mito", "nFeature_RNA", group.by = "orig.ident", pt.size = 0.5)+
+  scale_color_manual(values=sample_color) 
+selected_c <- WhichCells(sce.all, expression = nFeature_RNA > 200)
+selected_f <- rownames(sce.all)[Matrix::rowSums(sce.all@assays$RNA@counts > 0 ) > 3]
+sce.all.filt <- subset(sce.all, features = selected_f, cells = selected_c)
+dim(sce.all)
+dim(sce.all.filt) 
+selected_mito <- WhichCells(sce.all.filt, expression = percent_mito < 20)
+selected_ribo <- WhichCells(sce.all.filt, expression = percent_ribo > 3)
+length(selected_ribo)
+length(selected_mito)
+sce.all.filt <- subset(sce.all.filt, cells = selected_mito)
+sce.all.filt <- subset(sce.all.filt, cells = selected_ribo)
+dim(sce.all.filt)
+table(sce.all.filt$orig.ident) 
+feats <- c("nFeature_RNA", "nCount_RNA","percent_mito", "percent_ribo")
+p1_filtered=VlnPlot(sce.all.filt, group.by = "orig.ident", features = feats, pt.size = 0.1, ncol = 2) + 
+  NoLegend()
+feats <- c("percent_mito", "percent_ribo", "percent_hb")
+p2_filtered=VlnPlot(sce.all.filt, group.by = "orig.ident", features = feats, pt.size = 0.1, ncol = 3) + 
+  NoLegend()
+dim(sce.all.filt)
+FeatureScatter(sce.all.filt, "nCount_RNA", "nFeature_RNA", group.by = "orig.ident", pt.size = 0.5)+
+  scale_color_manual(values=sample_color) 
+FeatureScatter(sce.all.filt, "percent_mito", "nFeature_RNA", group.by = "orig.ident", pt.size = 0.5)+
+  scale_color_manual(values=sample_color) 
+sce.all.filt <- sce.all.filt[!grepl("^mt-", rownames(sce.all.filt),ignore.case = T), ]
+sce.all.filt <- sce.all.filt[!grepl("^Rp[sl]", rownames(sce.all.filt),ignore.case = T), ]
+sce.all.filt <- sce.all.filt[!grepl("^Hb-", rownames(sce.all.filt),ignore.case = T), ]
+dim(sce.all.filt)
+if(!require(harmony))devtools::install_github("immunogenomics/harmony")
+scRNA_harmony<-sce
+DefaultAssay(scRNA_harmony) <- 'RNA'
+scRNA_harmony <- NormalizeData(scRNA_harmony) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose=FALSE)
+system.time({scRNA_harmony <- RunHarmony(scRNA_harmony, group.by.vars = "orig.ident")})
+scRNA_harmony <- FindNeighbors(scRNA_harmony, reduction = "harmony", dims = 1:30) %>% FindClusters(resolution = 0.2)
+
+scRNA_harmony <- RunUMAP(scRNA_harmony, reduction = "harmony", dims = 1:30)
+scRNA_harmony <- RunTSNE(scRNA_harmony, reduction = "harmony", dims = 1:30)
+DimPlot(scRNA_harmony, reduction = "umap", label = T,label.size=5,
+)+
+  NoAxes()
+save(scRNA_harmony, file = "mouserep.Rdata")
+sce<- scRNA_harmony
+pcSelect=30
+for (res in c(0.1,0.2,0.3, 0.4, 0.5, 0.6, 0.7, 0.8,0.9,1)) {
+ 
+  print(res)
+  sce <- FindClusters(sce, graph.name = "RNA_snn", resolution = res, algorithm = 1)
+} 
+cluster_umap <- plot_grid(ncol = 4, 
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.2", label = T) & NoAxes(), 
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.3", label = T) & NoAxes(), 
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.4", label = T)& NoAxes(),
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.5", label = T) & NoAxes(),
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.6", label = T)& NoAxes(),
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.7", label = T)& NoAxes(),
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.8", label = T) & NoAxes(),
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.0.9", label = T) & NoAxes(), 
+                          DimPlot(sce, reduction = "umap", group.by = "RNA_snn_res.1", label = T) & NoAxes()
+)
+ggsave(cluster_umap, filename = "cluster_umap_all_res_by_RNAumap.pdf", width = 23, height = 13)
+save(sce, file = "mousecluster.Rdata")
+celltype=data.frame(ClusterID=0:17,
+                    celltype='unkown')
+celltype[celltype$ClusterID %in% c(0,5,13),2]='Neutrophil' 
+celltype[celltype$ClusterID %in% c(1,7,9,16),2]='Macrophages' 
+celltype[celltype$ClusterID %in% c(2,15,17),2]='B' 
+celltype[celltype$ClusterID %in% c(3,4,6),2]='T'    
+celltype[celltype$ClusterID %in% c(8),2]='NK' 
+celltype[celltype$ClusterID %in% c(10,11,14),2]='DC'  
+sce@meta.data$celltype = "NA"
+for(i in 1:nrow(celltype)){
+  sce@meta.data[which(sce@meta.data$'RNA_snn_res.0.3' == celltype$ClusterID[i]),'celltype'] <- celltype$celltype[i]}
+table(sce@meta.data$celltype)
+DimPlot(sce, reduction = "umap", group.by = "celltype",label = T,label.size=5 )+
+  NoAxes()+ theme(legend.position = 'none')+ ggsci::scale_color_igv()
+sce<-sce[,!(sce$celltype %in% c( 'unkown'))]
+sce<-sce[,!(sce$RNA_snn_res.0.3 %in% c( '11'))]
+sce = subset(sce[, sce@meta.data$celltype%in% c('Macrophages',        'DC')])
+Idents(sce) <- 'celltype'
+marker_cosg <- cosg(sce,groups='all',assay='RNA',slot='data',mu=1,n_genes_user=100,
+                    remove_lowly_expressed = TRUE,
+                    expressed_pct = 0.25)
+a <- marker_cosg[["names"]]
+outData=rbind(id=colnames(a),a)
+write.table(outData, file="COSG.txt", sep="\t", quote=F, col.names=F)
+
+unique(sce@meta.data[["celltype"]])
+ann=c("Macrophages","B","NK", "Neutrophil","T","DC")
+sce$celltype <- factor(sce$celltype,levels = ann)
+sample_color <- c("#4DBBD5FF","#E64B35FF","#00A087FF","#3C5488FF", "#F39B7FFF","#8491B4FF")
+gene <- c('C1qb', 'Cd115', 'Cd68', 'Ctsc', 'Grn', 'Mertk', 'Mpeg1', 'Pla2g15', 'Trf',
+          'Bank1', 'Blnk', 'Cd19', 'Cd22', 'Cd79a', 'Cd79b', 'Ebf1', 'Fcmr', 'Fcrla', 
+          'Ccl5',  'Ctsw',  'Gzma', 'Gzmb', 'Il2rb', 'Klra4',  'Klrc1', 'Klrc2', 
+          'Clec4d', 'Csf3r', 'Cxcr2', 'G0s2',  'Lcn2', 'Lrg1', 'S100a8', 'S100a9',
+          'Cd3d','Cd3g','Cd3e',
+          'Batf3', 'Ccl22', 'Flt3', 'Fscn1','Ccl17', 'Cd209a', 'Cd326',  'Mgl2'
+          
+)
+pdf(file="annheatmap.pdf",width = 4,height =5)
+Idents(sce) <- 'celltype'
+AverageHeatmap(object = sce,  assays = "RNA",group.by = 'celltype',fontsize =7,annoCol = TRUE,
+               myanCol = sample_color,
+               markerGene =gene ,row_title = "Marker genes", showRowNames = T,clusterAnnoName = F,
+               htCol = c("#1B19197F",'#8081807F',"#E18727FF")) 
+dev.off()
+pdf(file = 'tsnecelltype.pdf',height = 4,width = 5.2)
+DimPlot(sce, reduction = "tsne",
+        pt.size = 0.4,group.by = 'celltype',
+        label =F,label.box = F,label.size = 10,repel = T) + theme_bw() +
+  labs( x= "tSNE 1",y= "tSNE 2",title = "Celltype") +
+  theme(panel.grid=element_blank(), 
+        plot.title = element_text(size = 15,color="black",hjust = 0.5),
+        axis.text.x = element_text(size = 12, color = 'black'),
+        axis.text.y = element_text(size = 12, color = 'black'),
+        axis.title.x = element_text(size = 12, color = 'black'),
+        axis.title.y = element_text(size = 12, color = 'black'),
+        axis.ticks = element_line(color = 'black', lineend = 'round'),
+        legend.position = 'bottom',
+        legend.text = element_text(size = 16, color = 'black'),
+        legend.title = element_text(size = 15, color = 'black'),
+        panel.border = element_rect(fill=NA,color="black", size=1, linetype="solid"))+  
+  scale_fill_manual(values = alpha(sample_color , 0.65)) +
+  scale_color_manual(values = alpha(sample_color , 0.65))+
+  theme_dr(xlength = 0.22, ylength = 0.22,
+           arrow = grid::arrow(length = unit(0.15, "inches"), type = "closed")
+  )+theme(panel.grid = element_blank())
+dev.off()
+unique(sce@meta.data[["orig.ident"]])
+ann=c( "Bleomisin.Day0","Bleomisin.Day7","Bleomisin.Day14","Bleomisin.Day21")
+sce$orig.ident<- factor(sce$orig.ident,levels = ann)
+pdf(file = 'tsnesample.pdf',height = 4,width = 5.2)
+DimPlot(sce, reduction = "tsne",
+        pt.size = 0.4,group.by = 'orig.ident',
+        label =F,label.box = F,label.size = 1,repel = T) + theme_bw() +
+  labs( x= "tSNE 1",y= "tSNE 2",title = "sample") +
+  theme(panel.grid=element_blank(), 
+        plot.title = element_text(size = 15,color="black",hjust = 0.5),
+        axis.text.x = element_text(size = 12, color = 'black'),
+        axis.text.y = element_text(size = 12, color = 'black'),
+        axis.title.x = element_text(size = 12, color = 'black'),
+        axis.title.y = element_text(size = 12, color = 'black'),
+        axis.ticks = element_line(color = 'black', lineend = 'round'),
+        legend.position = 'bottom',
+        legend.text = element_text(size = 16, color = 'black'),
+        legend.title = element_text(size = 15, color = 'black'),
+        panel.border = element_rect(fill=NA,color="black", size=1, linetype="solid"))+ 
+  scale_fill_manual(values = alpha(sample_color , 0.65)) +
+  scale_color_manual(values = alpha(sample_color , 0.65))+
+  theme_dr(xlength = 0.22, ylength = 0.22,
+           arrow = grid::arrow(length = unit(0.15, "inches"), type = "closed")
+  )+theme(panel.grid = element_blank())
+dev.off()
+sce = subset(sce[, sce@meta.data$celltype%in% c('Macrophages')])
+scRNA_harmony<-sce
+DefaultAssay(scRNA_harmony) <- 'RNA'
+scRNA_harmony <- NormalizeData(scRNA_harmony) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose=FALSE)
+system.time({scRNA_harmony <- RunHarmony(scRNA_harmony, group.by.vars = "orig.ident")})
+scRNA_harmony <- FindNeighbors(scRNA_harmony, reduction = "harmony", dims = 1:30) %>% FindClusters(resolution = 0.2)
+scRNA_harmony <- RunUMAP(scRNA_harmony, reduction = "harmony", dims = 1:30)
+sce <- scRNA_harmony 
+pdf(file = 'tsnemac.pdf',height = 4,width = 5.2)
+DimPlot(sce, reduction = "tsne",
+        pt.size = 0.4,group.by = 'celltype',
+        label =F,label.box = F,label.size = 10,repel = T) + theme_bw() +
+  labs( x= "tSNE 1",y= "tSNE 2",title = "Celltype") +
+  theme(panel.grid=element_blank(), 
+        plot.title = element_text(size = 15,color="black",hjust = 0.5),
+        axis.text.x = element_text(size = 12, color = 'black'),
+        axis.text.y = element_text(size = 12, color = 'black'),
+        axis.title.x = element_text(size = 12, color = 'black'),
+        axis.title.y = element_text(size = 12, color = 'black'),
+        axis.ticks = element_line(color = 'black', lineend = 'round'),
+        legend.position = 'bottom',
+        legend.text = element_text(size = 16, color = 'black'),
+        legend.title = element_text(size = 15, color = 'black'),
+        panel.border = element_rect(fill=NA,color="black", size=1, linetype="solid"))+ 
+  scale_fill_manual(values = alpha(sample_color , 0.65)) +
+  scale_color_manual(values = alpha(sample_color , 0.65))+
+  theme_dr(xlength = 0.22, ylength = 0.22,
+           arrow = grid::arrow(length = unit(0.15, "inches"), type = "closed")
+  )+theme(panel.grid = element_blank())
+dev.off()
+pdf(file="macdot.pdf",width = 5.62,height =3.3)
+jjDotPlot(object =sce,
+          gene =c('Pla2g7','Spp1'),
+          id = 'orig.ident',
+           split.by.aesGroup =T, 
+          xtree =F,ytree =F,
+          rescale = T,rescale.min = -2,rescale.max =2,   midpoint = 0, dot.col = c('grey','white','orange'),
+  )
+dev.off()
+pdf(file="tsnepla2g7.pdf",width =14,height =14)
+FeatureCornerAxes(object = sce,reduction = 'tsne',
+                  groupFacet = 'orig.ident', aspect.ratio = 1,#不分面groupFacet = NULL,
+                  features = c('Pla2g7'), show.legend =T,
+                  relLength = 0.2,relDist = 0.1,
+                  cornerTextSize = 3,pSize = 0.1,
+                  lineTextcol = 'grey50',
+                  themebg = 'bwCorner',minExp = 0,maxExp = 2,nLayout=3)
+dev.off()
+
+
