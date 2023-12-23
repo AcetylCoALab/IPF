@@ -1,0 +1,86 @@
+Query	Gene	cor	pvalue
+IRS	Glycolysis . Gluconeogenesis	-0.0355853799446614	0.639156826954629
+IRS	Citrate cycle (TCA cycle)	-0.145992752321765	0.0531889742308257
+IRS	Pentose phosphate pathway	-0.102605290431392	0.175387990644039
+IRS	Pentose and glucuronate interconversions	-0.0757053901669371	0.317977422648369
+IRS	Fructose and mannose metabolism	-0.0998175545896053	0.187474212134046
+IRS	Galactose metabolism	-0.0543958865569285	0.473354378571782
+IRS	Ascorbate and aldarate metabolism	-0.0402198650762089	0.596119362521887
+IRS	Starch and sucrose metabolism	-0.279705521191408	0.000170189883643575
+IRS	Amino sugar and nucleotide sugar metabolism	-0.00784974017604636	0.917647009025461
+IRS	Pyruvate metabolism	-0.26307475491195	0.000419415305882396
+IRS	Glyoxylate and dicarboxylate metabolism	-0.332044007309315	6.72945711296203e-06
+IRS	Propanoate metabolism	-0.291559697231688	8.6348651681891e-05
+IRS	Butanoate metabolism	-0.341624338538392	3.48005212835526e-06
+IRS	Inositol phosphate metabolism	-0.0817732428659125	0.28062226675129
+IRS	Oxidative phosphorylation	-0.0280786564435439	0.711439038727336
+IRS	Nitrogen metabolism	-0.0542226114281985	0.474766924165158
+IRS	Sulfur metabolism	-0.244668344618983	0.00106544962837609
+IRS	Fatty acid biosynthesis	-0.0543959070033243	0.473354212027313
+IRS	Fatty acid elongation	-0.255296751908099	0.000627121412178468
+IRS	Fatty acid degradation	-0.207164652036206	0.00580212701203269
+IRS	Synthesis and degradation of ketone bodies	0.0271140806014026	0.720933492602147
+IRS	Steroid biosynthesis	-0.142240631857298	0.0596765670825175
+IRS	Primary bile acid biosynthesis	0.096444176238275	0.202900969111732
+IRS	Steroid hormone biosynthesis	-0.0475512961074863	0.530856704419544
+IRS	Glycerolipid metabolism	-0.261206836610639	0.000462475431934325
+IRS	Glycerophospholipid metabolism	-0.0182510798165605	0.810002614744414
+IRS	Ether lipid metabolism	0.159614326424316	0.0343431026948942
+IRS	Sphingolipid metabolism	-0.0577911362776497	0.446143567321609
+IRS	Arachidonic acid metabolism	0.333192244926162	6.22525341436767e-06
+IRS	Linoleic acid metabolism	0.0228386352985291	0.763514379488534
+IRS	alpha.Linolenic acid metabolism	-0.0970131940716797	0.200236470954125
+IRS	Biosynthesis of unsaturated fatty acids	-0.323608087900439	1.18122954468434e-05
+IRS	Purine metabolism	-0.178681701557269	0.0176578044098771
+IRS	Pyrimidine metabolism	-0.146410157822999	0.0525048139909146
+IRS	Alanine, aspartate and glutamate metabolism	-0.0994651368779469	0.189044490510201
+IRS	Glycine, serine and threonine metabolism	0.0789095175291089	0.29786726843605
+IRS	Cysteine and methionine metabolism	0.131238413523887	0.0825310581163985
+IRS	Valine, leucine and isoleucine degradation	-0.20668646594658	0.00591873122354863
+IRS	Valine, leucine and isoleucine biosynthesis	0.458583359121424	1.54906323115899e-10
+IRS	Lysine degradation	-0.210729135848341	0.0049956850110436
+IRS	Arginine biosynthesis	-0.000903907425196645	0.990500418245212
+IRS	Arginine and proline metabolism	0.272907059257138	0.000247790644965442
+IRS	Histidine metabolism	0.232442618159755	0.00190691545770046
+IRS	Tyrosine metabolism	0.13354523164581	0.0772321134131011
+IRS	Phenylalanine metabolism	0.150524522103271	0.0461432714296067
+IRS	Tryptophan metabolism	0.195695256324719	0.00924366300354568
+IRS	Phenylalanine, tyrosine and tryptophan biosynthesis	0.194526339692578	0.00967998480089762
+IRS	beta.Alanine metabolism	-0.192763339172217	0.0103724982034245
+IRS	Taurine and hypotaurine metabolism	0.108572650018762	0.151469809290787
+IRS	Phosphonate and phosphinate metabolism	0.00263488795563281	0.972313603928355
+IRS	Selenocompound metabolism	-0.0578542559500796	0.445646208213182
+IRS	D.Glutamine and D.glutamate metabolism	-0.0828334479131998	0.274411832369065
+IRS	D.Arginine and D.ornithine metabolism	-0.076172925739363	0.31498930643164
+IRS	Glutathione metabolism	-0.0403274557520498	0.595135947745024
+IRS	N.Glycan biosynthesis	-0.0787254588613449	0.298999152530447
+IRS	Mucin type O.glycan biosynthesis	0.102311481317641	0.176633941426542
+IRS	Mannose type O.glycan biosynthesis	-0.0244739861663784	0.747135401700925
+IRS	Other types of O.glycan biosynthesis	-0.0176666042426078	0.81597720623436
+IRS	Glycosaminoglycan biosynthesis . chondroitin sulfate . dermatan sulfate	0.354659032098477	1.36889908226656e-06
+IRS	Glycosaminoglycan biosynthesis . heparan sulfate . heparin	0.368251618696558	4.94486584471445e-07
+IRS	Glycosaminoglycan biosynthesis . keratan sulfate	0.00456607029942887	0.952040594449376
+IRS	Glycosaminoglycan degradation	-0.0305831519756302	0.686996362324481
+IRS	Glycosylphosphatidylinositol (GPI).anchor biosynthesis	-0.187601950194526	0.0126574626916651
+IRS	Glycosphingolipid biosynthesis . lacto and neolacto series	0.143796294821891	0.0569118482739054
+IRS	Glycosphingolipid biosynthesis . globo and isoglobo series	-0.107551802603377	0.155376811297598
+IRS	Glycosphingolipid biosynthesis . ganglio series	-0.136739502933568	0.0703519516250923
+IRS	Other glycan degradation	-0.243795181323866	0.00111175634060962
+IRS	Thiamine metabolism	0.0363758113479636	0.631725446660032
+IRS	Riboflavin metabolism	-0.137947872524474	0.0678828427298127
+IRS	Vitamin B6 metabolism	0.0253263166599136	0.738642965628128
+IRS	Nicotinate and nicotinamide metabolism	-0.19213079273214	0.010631414644764
+IRS	Pantothenate and CoA biosynthesis	0.0971167698797353	0.199754201147255
+IRS	Biotin metabolism	-0.30548137570423	3.74329379138009e-05
+IRS	Lipoic acid metabolism	-0.215182446510119	0.00413007232432358
+IRS	Folate biosynthesis	-0.138060525433549	0.0676563008610687
+IRS	One carbon pool by folate	-0.113270271025391	0.13444171730522
+IRS	Retinol metabolism	-0.161301957418381	0.032460850958078
+IRS	Porphyrin and chlorophyll metabolism	-0.0918468157114794	0.225371686093552
+IRS	Ubiquinone and other terpenoid.quinone biosynthesis	-0.213354431544035	0.00446758847784295
+IRS	Terpenoid backbone biosynthesis	-0.167548388453644	0.0262375125543178
+IRS	Caffeine metabolism	-0.173975802582637	0.0209301209929432
+IRS	Neomycin, kanamycin and gentamicin biosynthesis	-0.200658835369742	0.00757865783581524
+IRS	Metabolism of xenobiotics by cytochrome P450	0.0522989870930792	0.49060145263386
+IRS	Drug metabolism . cytochrome P450	-0.0465523928273017	0.539532988459739
+IRS	Drug metabolism . other enzymes	-0.0290958337038106	0.701474686275318

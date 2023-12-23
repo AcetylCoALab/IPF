@@ -1,0 +1,294 @@
+ID	gene	Count
+T cell differentiation	ADA	23
+T cell differentiation	BATF	23
+T cell differentiation	BCL11B	23
+T cell differentiation	CD2	23
+T cell differentiation	CD3D	23
+T cell differentiation	CD8A	23
+T cell differentiation	CDK6	23
+T cell differentiation	EOMES	23
+T cell differentiation	GPR18	23
+T cell differentiation	IFNG	23
+T cell differentiation	IKZF3	23
+T cell differentiation	ITK	23
+T cell differentiation	JAK3	23
+T cell differentiation	LAG3	23
+T cell differentiation	LEF1	23
+T cell differentiation	PRDM1	23
+T cell differentiation	RASGRP1	23
+T cell differentiation	RHOH	23
+T cell differentiation	RUNX3	23
+T cell differentiation	TBX21	23
+T cell differentiation	THEMIS	23
+T cell differentiation	ZAP70	23
+T cell differentiation	ZNF683	23
+alpha-beta T cell activation	ADA	18
+alpha-beta T cell activation	BATF	18
+alpha-beta T cell activation	BCL11B	18
+alpha-beta T cell activation	CD247	18
+alpha-beta T cell activation	CD3D	18
+alpha-beta T cell activation	EOMES	18
+alpha-beta T cell activation	GPR18	18
+alpha-beta T cell activation	IFNG	18
+alpha-beta T cell activation	ITK	18
+alpha-beta T cell activation	JAK3	18
+alpha-beta T cell activation	LEF1	18
+alpha-beta T cell activation	NKG7	18
+alpha-beta T cell activation	PRDM1	18
+alpha-beta T cell activation	RUNX3	18
+alpha-beta T cell activation	TBX21	18
+alpha-beta T cell activation	XCL1	18
+alpha-beta T cell activation	ZAP70	18
+alpha-beta T cell activation	ZNF683	18
+regulation of T cell activation	ADA	22
+regulation of T cell activation	BATF	22
+regulation of T cell activation	CCL5	22
+regulation of T cell activation	CD2	22
+regulation of T cell activation	CORO1A	22
+regulation of T cell activation	DPP4	22
+regulation of T cell activation	IFNG	22
+regulation of T cell activation	JAK3	22
+regulation of T cell activation	KLRK1	22
+regulation of T cell activation	LAG3	22
+regulation of T cell activation	LEF1	22
+regulation of T cell activation	PRDM1	22
+regulation of T cell activation	RASGRP1	22
+regulation of T cell activation	RHOH	22
+regulation of T cell activation	RUNX3	22
+regulation of T cell activation	SIT1	22
+regulation of T cell activation	SLAMF1	22
+regulation of T cell activation	TBX21	22
+regulation of T cell activation	TNFSF14	22
+regulation of T cell activation	XCL1	22
+regulation of T cell activation	ZAP70	22
+regulation of T cell activation	ZNF683	22
+regulation of leukocyte differentiation	ADA	18
+regulation of leukocyte differentiation	BATF	18
+regulation of leukocyte differentiation	CD2	18
+regulation of leukocyte differentiation	CDK6	18
+regulation of leukocyte differentiation	GPR68	18
+regulation of leukocyte differentiation	IFNG	18
+regulation of leukocyte differentiation	IKZF3	18
+regulation of leukocyte differentiation	JAK3	18
+regulation of leukocyte differentiation	LAG3	18
+regulation of leukocyte differentiation	LEF1	18
+regulation of leukocyte differentiation	PRDM1	18
+regulation of leukocyte differentiation	RASGRP1	18
+regulation of leukocyte differentiation	RHOH	18
+regulation of leukocyte differentiation	RUNX3	18
+regulation of leukocyte differentiation	TBX21	18
+regulation of leukocyte differentiation	TESC	18
+regulation of leukocyte differentiation	ZAP70	18
+regulation of leukocyte differentiation	ZNF683	18
+natural killer cell mediated immunity	CD2	11
+natural killer cell mediated immunity	CD96	11
+natural killer cell mediated immunity	CORO1A	11
+natural killer cell mediated immunity	GZMB	11
+natural killer cell mediated immunity	KLRB1	11
+natural killer cell mediated immunity	KLRC4	11
+natural killer cell mediated immunity	KLRK1	11
+natural killer cell mediated immunity	LAG3	11
+natural killer cell mediated immunity	NKG7	11
+natural killer cell mediated immunity	RASGRP1	11
+natural killer cell mediated immunity	SLAMF7	11
+lymphocyte mediated immunity	BATF	17
+lymphocyte mediated immunity	CD2	17
+lymphocyte mediated immunity	CD8A	17
+lymphocyte mediated immunity	CD96	17
+lymphocyte mediated immunity	CORO1A	17
+lymphocyte mediated immunity	GZMB	17
+lymphocyte mediated immunity	IL2RB	17
+lymphocyte mediated immunity	KLRB1	17
+lymphocyte mediated immunity	KLRC4	17
+lymphocyte mediated immunity	KLRK1	17
+lymphocyte mediated immunity	LAG3	17
+lymphocyte mediated immunity	NKG7	17
+lymphocyte mediated immunity	RASGRP1	17
+lymphocyte mediated immunity	SLAMF1	17
+lymphocyte mediated immunity	SLAMF7	17
+lymphocyte mediated immunity	TBX21	17
+lymphocyte mediated immunity	XCL1	17
+natural killer cell activation	CD2	11
+natural killer cell activation	CD244	11
+natural killer cell activation	CORO1A	11
+natural killer cell activation	IL2RB	11
+natural killer cell activation	KLRK1	11
+natural killer cell activation	NKG7	11
+natural killer cell activation	PRDM1	11
+natural killer cell activation	RASGRP1	11
+natural killer cell activation	SLAMF1	11
+natural killer cell activation	SLAMF7	11
+natural killer cell activation	ZNF683	11
+positive regulation of T cell activation	ADA	15
+positive regulation of T cell activation	CCL5	15
+positive regulation of T cell activation	CORO1A	15
+positive regulation of T cell activation	DPP4	15
+positive regulation of T cell activation	IFNG	15
+positive regulation of T cell activation	JAK3	15
+positive regulation of T cell activation	KLRK1	15
+positive regulation of T cell activation	LEF1	15
+positive regulation of T cell activation	RASGRP1	15
+positive regulation of T cell activation	RHOH	15
+positive regulation of T cell activation	RUNX3	15
+positive regulation of T cell activation	SLAMF1	15
+positive regulation of T cell activation	TNFSF14	15
+positive regulation of T cell activation	XCL1	15
+positive regulation of T cell activation	ZAP70	15
+T cell receptor signaling pathway	ADA	12
+T cell receptor signaling pathway	CD247	12
+T cell receptor signaling pathway	CD3D	12
+T cell receptor signaling pathway	CD8A	12
+T cell receptor signaling pathway	CD8B	12
+T cell receptor signaling pathway	ITK	12
+T cell receptor signaling pathway	PDE4B	12
+T cell receptor signaling pathway	PVRIG	12
+T cell receptor signaling pathway	THEMIS	12
+T cell receptor signaling pathway	TRAT1	12
+T cell receptor signaling pathway	UBASH3A	12
+T cell receptor signaling pathway	ZAP70	12
+positive regulation of cell-cell adhesion	ADA	16
+positive regulation of cell-cell adhesion	ADAM19	16
+positive regulation of cell-cell adhesion	CCL5	16
+positive regulation of cell-cell adhesion	CORO1A	16
+positive regulation of cell-cell adhesion	DPP4	16
+positive regulation of cell-cell adhesion	IFNG	16
+positive regulation of cell-cell adhesion	JAK3	16
+positive regulation of cell-cell adhesion	KLRK1	16
+positive regulation of cell-cell adhesion	LEF1	16
+positive regulation of cell-cell adhesion	RASGRP1	16
+positive regulation of cell-cell adhesion	RHOH	16
+positive regulation of cell-cell adhesion	RUNX3	16
+positive regulation of cell-cell adhesion	SLAMF1	16
+positive regulation of cell-cell adhesion	TNFSF14	16
+positive regulation of cell-cell adhesion	XCL1	16
+positive regulation of cell-cell adhesion	ZAP70	16
+positive regulation of leukocyte activation	ADA	17
+positive regulation of leukocyte activation	CCL5	17
+positive regulation of leukocyte activation	CD2	17
+positive regulation of leukocyte activation	CORO1A	17
+positive regulation of leukocyte activation	DPP4	17
+positive regulation of leukocyte activation	IFNG	17
+positive regulation of leukocyte activation	JAK3	17
+positive regulation of leukocyte activation	KLRK1	17
+positive regulation of leukocyte activation	LEF1	17
+positive regulation of leukocyte activation	RASGRP1	17
+positive regulation of leukocyte activation	RHOH	17
+positive regulation of leukocyte activation	RUNX3	17
+positive regulation of leukocyte activation	SLAMF1	17
+positive regulation of leukocyte activation	TBX21	17
+positive regulation of leukocyte activation	TNFSF14	17
+positive regulation of leukocyte activation	XCL1	17
+positive regulation of leukocyte activation	ZAP70	17
+leukocyte cell-cell adhesion	ADA	17
+leukocyte cell-cell adhesion	CCL5	17
+leukocyte cell-cell adhesion	CORO1A	17
+leukocyte cell-cell adhesion	DPP4	17
+leukocyte cell-cell adhesion	IFNG	17
+leukocyte cell-cell adhesion	JAK3	17
+leukocyte cell-cell adhesion	KLRK1	17
+leukocyte cell-cell adhesion	LAG3	17
+leukocyte cell-cell adhesion	LEF1	17
+leukocyte cell-cell adhesion	RASGRP1	17
+leukocyte cell-cell adhesion	RHOH	17
+leukocyte cell-cell adhesion	RUNX3	17
+leukocyte cell-cell adhesion	SLAMF1	17
+leukocyte cell-cell adhesion	TBX21	17
+leukocyte cell-cell adhesion	TNFSF14	17
+leukocyte cell-cell adhesion	XCL1	17
+leukocyte cell-cell adhesion	ZAP70	17
+leukocyte mediated cytotoxicity	CD2	11
+leukocyte mediated cytotoxicity	CORO1A	11
+leukocyte mediated cytotoxicity	GZMB	11
+leukocyte mediated cytotoxicity	KLRB1	11
+leukocyte mediated cytotoxicity	KLRC4	11
+leukocyte mediated cytotoxicity	KLRK1	11
+leukocyte mediated cytotoxicity	LAG3	11
+leukocyte mediated cytotoxicity	NKG7	11
+leukocyte mediated cytotoxicity	RASGRP1	11
+leukocyte mediated cytotoxicity	SLAMF7	11
+leukocyte mediated cytotoxicity	XCL1	11
+cell killing	CD2	12
+cell killing	CORO1A	12
+cell killing	GZMB	12
+cell killing	IFNG	12
+cell killing	KLRB1	12
+cell killing	KLRC4	12
+cell killing	KLRK1	12
+cell killing	LAG3	12
+cell killing	NKG7	12
+cell killing	RASGRP1	12
+cell killing	SLAMF7	12
+cell killing	XCL1	12
+leukocyte activation involved in immune response	ADA	14
+leukocyte activation involved in immune response	BATF	14
+leukocyte activation involved in immune response	CD244	14
+leukocyte activation involved in immune response	CORO1A	14
+leukocyte activation involved in immune response	EOMES	14
+leukocyte activation involved in immune response	IFNG	14
+leukocyte activation involved in immune response	ITM2A	14
+leukocyte activation involved in immune response	JAK3	14
+leukocyte activation involved in immune response	LEF1	14
+leukocyte activation involved in immune response	NKG7	14
+leukocyte activation involved in immune response	RASGRP1	14
+leukocyte activation involved in immune response	SLAMF1	14
+leukocyte activation involved in immune response	TBX21	14
+leukocyte activation involved in immune response	ZNF683	14
+negative regulation of immune system process	ADA	17
+negative regulation of immune system process	CD96	17
+negative regulation of immune system process	CDK6	17
+negative regulation of immune system process	CST7	17
+negative regulation of immune system process	DPP4	17
+negative regulation of immune system process	GPR18	17
+negative regulation of immune system process	GPR68	17
+negative regulation of immune system process	JAK3	17
+negative regulation of immune system process	KLRK1	17
+negative regulation of immune system process	LAG3	17
+negative regulation of immune system process	NLRC3	17
+negative regulation of immune system process	PVRIG	17
+negative regulation of immune system process	RUNX3	17
+negative regulation of immune system process	SLAMF1	17
+negative regulation of immune system process	TBX21	17
+negative regulation of immune system process	UBASH3A	17
+negative regulation of immune system process	XCL1	17
+leukocyte migration	ADA	14
+leukocyte migration	ASB2	14
+leukocyte migration	CCL5	14
+leukocyte migration	CCR5	14
+leukocyte migration	CORO1A	14
+leukocyte migration	DPP4	14
+leukocyte migration	GPR18	14
+leukocyte migration	KLRK1	14
+leukocyte migration	PDE4B	14
+leukocyte migration	SLAMF1	14
+leukocyte migration	TBX21	14
+leukocyte migration	TNFSF14	14
+leukocyte migration	XCL1	14
+leukocyte migration	ZAP70	14
+mononuclear cell proliferation	ADA	12
+mononuclear cell proliferation	CCL5	12
+mononuclear cell proliferation	CORO1A	12
+mononuclear cell proliferation	IKZF3	12
+mononuclear cell proliferation	JAK3	12
+mononuclear cell proliferation	LEF1	12
+mononuclear cell proliferation	RASGRP1	12
+mononuclear cell proliferation	SLAMF1	12
+mononuclear cell proliferation	ST6GAL1	12
+mononuclear cell proliferation	TNFSF14	12
+mononuclear cell proliferation	XCL1	12
+mononuclear cell proliferation	ZAP70	12
+type II interferon production	CD2	8
+type II interferon production	CD244	8
+type II interferon production	CD96	8
+type II interferon production	KLRK1	8
+type II interferon production	PDE4B	8
+type II interferon production	RASGRP1	8
+type II interferon production	SLAMF1	8
+type II interferon production	XCL1	8
+regulation of type II interferon production	CD2	8
+regulation of type II interferon production	CD244	8
+regulation of type II interferon production	CD96	8
+regulation of type II interferon production	KLRK1	8
+regulation of type II interferon production	PDE4B	8
+regulation of type II interferon production	RASGRP1	8
+regulation of type II interferon production	SLAMF1	8
+regulation of type II interferon production	XCL1	8

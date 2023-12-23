@@ -1,0 +1,166 @@
+ID	gene	count
+primary immunodeficiency disease	ADA	20
+primary immunodeficiency disease	BCL11B	20
+primary immunodeficiency disease	CCL5	20
+primary immunodeficiency disease	CCR5	20
+primary immunodeficiency disease	CD247	20
+primary immunodeficiency disease	CD3D	20
+primary immunodeficiency disease	CORO1A	20
+primary immunodeficiency disease	DPP4	20
+primary immunodeficiency disease	FASLG	20
+primary immunodeficiency disease	IFNG	20
+primary immunodeficiency disease	IKZF3	20
+primary immunodeficiency disease	IL2RB	20
+primary immunodeficiency disease	ITK	20
+primary immunodeficiency disease	JAK3	20
+primary immunodeficiency disease	KLRG1	20
+primary immunodeficiency disease	KLRK1	20
+primary immunodeficiency disease	RASGRP1	20
+primary immunodeficiency disease	RHOH	20
+primary immunodeficiency disease	TBX21	20
+primary immunodeficiency disease	ZAP70	20
+combined immunodeficiency	ADA	7
+combined immunodeficiency	CD3D	7
+combined immunodeficiency	CORO1A	7
+combined immunodeficiency	DPP4	7
+combined immunodeficiency	JAK3	7
+combined immunodeficiency	RASGRP1	7
+combined immunodeficiency	ZAP70	7
+primary bacterial infectious disease	ADA	11
+primary bacterial infectious disease	CCL5	11
+primary bacterial infectious disease	CCR5	11
+primary bacterial infectious disease	CD247	11
+primary bacterial infectious disease	FASLG	11
+primary bacterial infectious disease	GZMA	11
+primary bacterial infectious disease	IFNG	11
+primary bacterial infectious disease	KLRK1	11
+primary bacterial infectious disease	PRDM1	11
+primary bacterial infectious disease	SLAMF1	11
+primary bacterial infectious disease	ZAP70	11
+respiratory syncytial virus infectious disease	CCL5	5
+respiratory syncytial virus infectious disease	CCR5	5
+respiratory syncytial virus infectious disease	GZMA	5
+respiratory syncytial virus infectious disease	GZMB	5
+respiratory syncytial virus infectious disease	IFNG	5
+bacterial infectious disease	ADA	12
+bacterial infectious disease	CCL5	12
+bacterial infectious disease	CCR5	12
+bacterial infectious disease	CD247	12
+bacterial infectious disease	CXCR6	12
+bacterial infectious disease	FASLG	12
+bacterial infectious disease	GZMA	12
+bacterial infectious disease	IFNG	12
+bacterial infectious disease	KLRK1	12
+bacterial infectious disease	PRDM1	12
+bacterial infectious disease	SLAMF1	12
+bacterial infectious disease	ZAP70	12
+chronic obstructive pulmonary disease	ADA	11
+chronic obstructive pulmonary disease	CCL5	11
+chronic obstructive pulmonary disease	CCR5	11
+chronic obstructive pulmonary disease	CD8A	11
+chronic obstructive pulmonary disease	CXCR6	11
+chronic obstructive pulmonary disease	FASLG	11
+chronic obstructive pulmonary disease	GZMA	11
+chronic obstructive pulmonary disease	GZMB	11
+chronic obstructive pulmonary disease	IFNG	11
+chronic obstructive pulmonary disease	KLRK1	11
+chronic obstructive pulmonary disease	STAT4	11
+obstructive lung disease	ADA	11
+obstructive lung disease	CCL5	11
+obstructive lung disease	CCR5	11
+obstructive lung disease	CD8A	11
+obstructive lung disease	CXCR6	11
+obstructive lung disease	FASLG	11
+obstructive lung disease	GZMA	11
+obstructive lung disease	GZMB	11
+obstructive lung disease	IFNG	11
+obstructive lung disease	KLRK1	11
+obstructive lung disease	STAT4	11
+human immunodeficiency virus infectious disease	CCL5	9
+human immunodeficiency virus infectious disease	CCR5	9
+human immunodeficiency virus infectious disease	CXCR6	9
+human immunodeficiency virus infectious disease	DPP4	9
+human immunodeficiency virus infectious disease	FASLG	9
+human immunodeficiency virus infectious disease	GZMB	9
+human immunodeficiency virus infectious disease	IFNG	9
+human immunodeficiency virus infectious disease	IL2RB	9
+human immunodeficiency virus infectious disease	ITK	9
+Coronavirus infectious disease	CCL5	7
+Coronavirus infectious disease	CCR5	7
+Coronavirus infectious disease	CD8A	7
+Coronavirus infectious disease	DPP4	7
+Coronavirus infectious disease	GZMB	7
+Coronavirus infectious disease	IFNG	7
+Coronavirus infectious disease	IL2RB	7
+T cell deficiency	BCL11B	3
+T cell deficiency	CD247	3
+T cell deficiency	ZAP70	3
+tuberculosis	ADA	8
+tuberculosis	CCL5	8
+tuberculosis	CCR5	8
+tuberculosis	CD247	8
+tuberculosis	FASLG	8
+tuberculosis	GZMA	8
+tuberculosis	IFNG	8
+tuberculosis	KLRK1	8
+asthma	ADA	10
+asthma	CCL5	10
+asthma	CCR5	10
+asthma	IFNG	10
+asthma	IL2RB	10
+asthma	ITK	10
+asthma	RUNX3	10
+asthma	STAT4	10
+asthma	TBX21	10
+asthma	XCL1	10
+bronchial disease	ADA	10
+bronchial disease	CCL5	10
+bronchial disease	CCR5	10
+bronchial disease	IFNG	10
+bronchial disease	IL2RB	10
+bronchial disease	ITK	10
+bronchial disease	RUNX3	10
+bronchial disease	STAT4	10
+bronchial disease	TBX21	10
+bronchial disease	XCL1	10
+leukocyte disease	BIRC3	6
+leukocyte disease	CCL5	6
+leukocyte disease	CD8A	6
+leukocyte disease	IFNG	6
+leukocyte disease	LEF1	6
+leukocyte disease	XCL1	6
+autoimmune disease of endocrine system	CCL5	6
+autoimmune disease of endocrine system	CCR5	6
+autoimmune disease of endocrine system	CXCR6	6
+autoimmune disease of endocrine system	FASLG	6
+autoimmune disease of endocrine system	IFNG	6
+autoimmune disease of endocrine system	ST6GAL1	6
+parasitic protozoa infectious disease	ADA	7
+parasitic protozoa infectious disease	CCL5	7
+parasitic protozoa infectious disease	CCR5	7
+parasitic protozoa infectious disease	FASLG	7
+parasitic protozoa infectious disease	IFNG	7
+parasitic protozoa infectious disease	IL2RB	7
+parasitic protozoa infectious disease	TBX21	7
+COVID-19	CCL5	5
+COVID-19	CD8A	5
+COVID-19	GZMB	5
+COVID-19	IFNG	5
+COVID-19	IL2RB	5
+acquired immunodeficiency syndrome	CCL5	5
+acquired immunodeficiency syndrome	CCR5	5
+acquired immunodeficiency syndrome	CXCR6	5
+acquired immunodeficiency syndrome	FASLG	5
+acquired immunodeficiency syndrome	IFNG	5
+influenza	CCL5	5
+influenza	CD244	5
+influenza	CD8A	5
+influenza	IFITM1	5
+influenza	IFNG	5
+acute leukemia	CD96	7
+acute leukemia	IFNG	7
+acute leukemia	JAK3	7
+acute leukemia	LEF1	7
+acute leukemia	P2RY8	7
+acute leukemia	RUNX3	7
+acute leukemia	ST6GAL1	7

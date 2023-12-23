@@ -1,0 +1,13 @@
+receptor = rep.pdbqt
+ligand=lig.pdbqt
+
+center_x =-0.94
+center_y =1.55
+center_z =-5.949    
+
+size_x = 58
+size_y = 54
+size_z = 102
+
+energy_range = 5
+num_modes = 20
