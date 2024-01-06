@@ -426,6 +426,168 @@ KEGG=as.data.frame(kk)
 KEGG$geneID=as.character(sapply(KEGG$geneID,function(x)paste(rt$Gene[match(strsplit(x,"/")[[1]],as.character(rt$entrezID))],collapse="/")))
 KEGG=KEGG[(KEGG$pvalue<pvalueFilter & KEGG$qvalue<qvalueFilter),]
 write.table(KEGG,file="KEGG.txt",sep="\t",quote=F,row.names = F)
+######Figure2L
+library(ggplot2)
+library(RColorBrewer)
+dt=read.table('KEGG.txt', header=T, sep="\t", check.names=F)
+colnames(dt)
+dt$Description <- factor(dt$Description,
+                         levels= rev(dt$Description))
+mytheme<- theme(
+  axis.title = element_text(size = 13),
+  axis.text = element_text(size = 11),
+  plot.title = element_text(size = 14,
+                            hjust= 0.5,
+                            face="bold"),
+  legend.title = element_text(size = 13),
+  legend.text = element_text(size = 11),
+  plot.margin = margin(t = 5.5,
+                       r= 10,
+                       l= 5.5,
+                       b= 5.5)
+)
+mytheme2<- mytheme + theme(axis.text.y = element_blank())
+p<- ggplot(data = dt, aes(x = Count, y = Description, fill = -log10(pvalue))) +
+  scale_fill_distiller(palette ="RdPu",direction = 1) +
+  geom_bar(stat ="identity", width = 0.8) +
+  labs(x ="Number of Gene", y ="", title ="KEGG enrichment") +
+  theme_bw() + mytheme
+p
+####Figure2M,2N
+setwd('D:\\kehudata\\肺纤维化模型\\3.pink富集分析')
+library(clusterProfiler)
+library(GOplot)
+library(tidyverse)
+library(data.table)
+library(ggraph)
+library(tidygraph)
+Sys.setenv(LANGUAGE = "en") 
+options(stringsAsFactors = FALSE) 
+gather_graph_edge <- function(df,index=NULL,root=NULL){
+  require(dplyr)
+  if (length(index) < 2){
+    stop("please specify at least two index column(s)")
+  } else if (length(index)==2){
+    data <- df %>% mutate(from=.data[[index[[1]]]]) %>%
+      tidyr::unite(to,index,sep="/") %>%
+      select(from,to) %>%
+      mutate_at(c("from","to"),as.character)
+  } else {
+    list <- lapply(seq(2,length(index)), function(i){
+      dots <- index[1:i]
+      df %>% tidyr::unite(from,dots[-length(dots)],sep = "/",remove = F)  %>%
+        tidyr::unite(to,dots,sep="/") %>%
+        select(from,to) %>%
+        mutate_at(c("from","to"),as.character)
+    })
+    data <- do.call("rbind",list)
+  }
+  data <- as_tibble(data)
+  if (is.null(root)){
+    return(data)
+  } else {
+    root_data <- df %>% group_by(.dots=index[[1]]) %>%
+      summarise(count=n()) %>%
+      mutate(from=root,to=as.character(.data[[index[[1]]]] )) %>%
+      select(from,to)
+    rbind(root_data,data)
+  }
+  
+}
+gather_graph_node <- function(df,index=NULL,value=tail(colnames(df),1),root=NULL){
+  require(dplyr)
+  if (length(index) < 2){
+    stop("please specify at least two index column(s)")
+  } else {
+    list <- lapply(seq_along(index), function(i){
+      dots <- index[1:i]
+      df %>%
+        group_by(.dots=dots) %>%
+        summarise(node.size=sum(.data[[value]]),
+                  node.level=index[[i]],
+                  node.count=n()) %>%
+        mutate(node.short_name=as.character(.data[[ dots[[length(dots)]] ]]),
+               node.branch = as.character(.data[[ dots[[1]]]])) %>%
+        tidyr::unite(node.name,dots,sep = "/")
+    })
+    data <- do.call("rbind",list) %>% as_tibble()
+    data$node.level <- factor(data$node.level,levels = index)
+    
+    if (is.null(root)){
+      return(data)
+    } else {
+      root_data <- data.frame(node.name=root,
+                              node.size=sum(df[[value]]),
+                              node.level=root,
+                              node.count=1,
+                              node.short_name=root,
+                              node.branch=root,
+                              stringsAsFactors = F)
+      data <- rbind(root_data,data)
+      data$node.level <- factor(data$node.level, levels = c(root,index))
+      return(data)
+    }
+  }
+}
+df=read.table('GOplot.txt', header=T, sep="\t", check.names=F) #or DOplot
+head(df)
+colnames(df) <- c('term','genes','count')
+nodes <- gather_graph_node(df, index = c("term", "genes"), value = "count", root="all")
+edges <- gather_graph_edge(df, index = c("term", "genes"), root = "all")
+nodes <- nodes %>% mutate_at(c("node.level","node.branch"),as.character)
+head(nodes, 10)
+# nodes$color <- "normal"
+# nodes[nodes$node.short_name %in% geneSpecial$Gene,]$color <- geneCol[nodes[nodes$node.short_name %in% geneSpecial$Gene,]$node.short_name]
+# nodes[nodes$node.short_name %in% geneSpecial$Gene,]
+# nodes$color <- factor(nodes$color, levels = unique(nodes$color))
+graph <- tbl_graph(nodes, edges)
+node_colors <- c("#D51F26","#272E6A","#208A42","#89288F","#F47D2B",
+                 "#8A9FD1","#C06CAB","#E6C2DC",
+                 "#90D5E4", "#89C75F","#F37B7D","#9983BD",
+                 "#D24B27","#3BBCA8", "#6E4B9E", 
+                 "#7E1416","#D8A767","#3D3D3D","#E64B35FF","#4DBBD5FF","#00A087FF","#3C5488FF", "#F39B7FFF","#8491B4FF",
+                 "#91D1C2FF","#DC0000FF","#7E6148FF","#BC3C29FF","#0072B5FF","#E18727FF","#D24B27","#D51F26")
+
+pdf(file='enrichcir.pdf', height=14, width=14) 
+ggraph(graph, layout = 'dendrogram', circular = TRUE) + 
+  geom_edge_diagonal(aes(color = node1.node.branch,
+                         filter=node1.node.level!="all"), 
+                     alpha = 1/3,edge_width=1) + 
+  geom_node_point(aes(size = node.size, 
+                      color = node.branch,
+                      filter=node.level!="all"), alpha = 1/3) + 
+  scale_size(range = c(0,20)) + 
+  theme(legend.position = "none") + 
+  scale_color_manual(values = node_colors) +
+  scale_edge_color_manual(values = node_colors)+
+  geom_node_text(
+    aes(
+      x = 1.048 * x, 
+      y = 1.048 * y, 
+      label = node.short_name,
+      angle = -((-node_angle(x, y) + 90) %% 180) + 90,
+      filter = leaf,
+      color = node.branch
+    ),
+    size = 6, hjust = 'outward') +
+   geom_node_text(
+    aes(
+      x = 1.3 * x, 
+      y = 1.3 * y, 
+      label = node.short_name,
+      filter = !leaf & (node.level != "all"),
+      color = node.branch
+    ),
+    size = 8,
+    hjust = 'outward',
+    family = "sans"
+  ) + 
+  theme(panel.background = element_rect(fill = NA)) +
+  coord_cartesian(xlim=c(-1.3,1.3),ylim = c(-1.3,1.3)) 
+dev.off()
+
+
+
 ####单因素Cox#########
 library(limma)
 library(tidyverse)
@@ -589,7 +751,477 @@ write.table(cliStatOut,file="cliStat.result.xls",sep="\t",quote=F,row.names=F)
 
 
 ######ML#######
-https://github.com/Zaoqu-Liu/IRLS
+RunML <- function(method, Train_expr, Train_surv, mode = "Model", timeVar = "OS.time", statusVar = "OS", ...){
+  method = gsub(" ", "", method) 
+  method_name = gsub("(\\w+)\\[(.+)\\]", "\\1", method)  
+  method_param = gsub("(\\w+)\\[(.+)\\]", "\\2", method) 
+  
+  method_param = switch(
+    EXPR = method_name,
+    "Enet" = list("alpha" = as.numeric(gsub("alpha=", "", method_param))),
+    "StepCox" = list("direction" = method_param),
+    NULL
+  )
+  message("Run ", method_name, " algorithm for ", mode, "; ",
+          method_param, ";",
+          " using ", ncol(Train_expr), " Variables")
+  
+  args = list("Train_expr" = Train_expr,
+              "Train_surv" = Train_surv,
+              "mode" = mode,
+              "timeVar" = timeVar, "statusVar" = statusVar)
+  args = c(args, method_param)
+  
+  obj <- do.call(what = paste0("Run", method_name),
+                 args = args) 
+  
+  if(mode == "Variable"){
+    message(length(obj), " Variables retained;\n")
+  }else{message("\n")}
+  return(obj)
+}
+
+RunEnet <- function(Train_expr, Train_surv, mode, timeVar, statusVar, alpha){
+  cv.fit = cv.glmnet(x = Train_expr,
+                     y = Surv(Train_surv[[timeVar]], Train_surv[[statusVar]]),
+                     family = "cox", alpha = alpha, nfolds = 10)
+  fit = glmnet(x = Train_expr,
+               y = Surv(Train_surv[[timeVar]], Train_surv[[statusVar]]),
+               family = "cox", alpha = alpha, lambda = cv.fit$lambda.min)
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+RunLasso <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  RunEnet(Train_expr, Train_surv, mode, timeVar, statusVar, alpha = 1)
+}
+
+RunRidge <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  RunEnet(Train_expr, Train_surv, mode, timeVar, statusVar, alpha = 0)
+}
+
+RunStepCox <- function(Train_expr, Train_surv, mode, timeVar, statusVar, direction){
+  fit <- step(coxph(formula = Surv(Train_surv[[timeVar]], Train_surv[[statusVar]]) ~ .,
+                    data = as.data.frame(Train_expr)),
+              direction = direction, trace = 0)
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+RunsurvivalSVM <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  fit = survivalsvm(formula = Surv(Train_surv[[timeVar]], Train_surv[[statusVar]]) ~ .,
+                    data= as.data.frame(Train_expr),
+                    gamma.mu = 1, opt.meth = "ipop")
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+RunCoxBoost <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  pen <- optimCoxBoostPenalty(time = Train_surv[[timeVar]],
+                              status = Train_surv[[statusVar]],
+                              x = Train_expr,
+                              trace = F, start.penalty=500, parallel = F)
+  cv.res <- cv.CoxBoost(time = Train_surv[[timeVar]],
+                        status = Train_surv[[statusVar]],
+                        x = Train_expr,
+                        maxstepno=500, K=10, type="verweij", penalty=pen$penalty)
+  fit <- CoxBoost(time = Train_surv[[timeVar]],
+                  status = Train_surv[[statusVar]],
+                  x = Train_expr,
+                  stepno = cv.res$optimal.step,
+                  penalty = pen$penalty)
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+RunSuperPC <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  data <- list(x = t(scale(Train_expr)),
+               y = Train_surv[[timeVar]],
+               censoring.status = Train_surv[[statusVar]],
+               featurenames = colnames(Train_expr))
+  fit <- superpc.train(data = data,type = 'survival',s0.perc = 0.5) 
+  cv.fit <- suppressWarnings(superpc.cv(fit, data,
+                                        n.threshold = 20, 
+                                        n.fold = 10,
+                                        n.components = 3,
+                                        min.features = 5,
+                                        max.features = nrow(data$x),
+                                        compute.fullcv = TRUE,
+                                        compute.preval = TRUE))
+  fit$threshold <- cv.fit$thresholds[which.max(cv.fit[["scor"]][1,])]
+  fit$data <- data
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+RunplsRcox <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  data <- list(x = Train_expr,
+               time = Train_surv[[timeVar]],
+               status = Train_surv[[statusVar]])
+  cv.plsRcox.res = cv.plsRcox(data = data,
+                              nt=10, verbose = FALSE)
+  fit <- plsRcox(Xplan = data$x,
+                 time = data$time,
+                 event = data$status,
+                 nt = as.numeric(cv.plsRcox.res[5]),
+                 verbose = F, sparse = T)
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+RunRSF <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  rf_nodesize = 5 
+  fit <- rfsrc(formula = formula(paste0("Surv(", timeVar, ", ", statusVar, ")", "~.")),
+               data = cbind(Train_expr, Train_surv[,c(timeVar, statusVar)]), 
+               ntree = 1000, nodesize = rf_nodesize,
+               splitrule = 'logrank',
+               importance = T,
+               proximity = T,
+               forest = T)
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+RunGBM <- function(Train_expr, Train_surv, mode, timeVar, statusVar){
+  fit <- gbm(formula = Surv(Train_surv[[timeVar]], Train_surv[[statusVar]]) ~ .,
+             data = as.data.frame(Train_expr),
+             distribution = 'coxph',
+             n.trees = 10000,
+             interaction.depth = 3,
+             n.minobsinnode = 10,
+             shrinkage = 0.001,
+             cv.folds = 10,n.cores = 6)
+  best <- which.min(fit$cv.error)
+  fit <- gbm(formula = Surv(Train_surv[[timeVar]], Train_surv[[statusVar]]) ~ .,
+             data = as.data.frame(Train_expr),
+             distribution = 'coxph',
+             n.trees = best,
+             interaction.depth = 3,
+             n.minobsinnode = 10,
+             shrinkage = 0.001, n.cores = 8)
+  fit$subFeature = colnames(Train_expr)
+  if (mode == "Model") return(fit)
+  if (mode == "Variable") return(ExtractVar(fit))
+}
+
+quiet <- function(..., messages=FALSE, cat=FALSE){
+  if(!cat){
+    sink(tempfile())
+    on.exit(sink())
+  }
+  out <- if(messages) eval(...) else suppressMessages(eval(...))
+  out
+}
+
+ExtractVar <- function(fit){
+  Feature <- quiet(switch(
+    EXPR = class(fit)[1],
+    "coxnet" = rownames(coef(fit))[which(coef(fit)[, 1] != 0)], 
+    "coxph" = names(coef(fit)), 
+    "survivalsvm" = fit$var.names, 
+    "CoxBoost" = names(coef(fit)[abs(coef(fit)) > 0]), 
+    "superpc" = names(fit$feature.scores)[abs(fit$feature.scores) > 0.5],
+    "plsRcoxmodel" = rownames(fit$Coeffs)[fit$Coeffs != 0],
+    "rfsrc" = var.select(fit, verbose = F)$topvars, 
+    "gbm" = rownames(summary.gbm(fit, plotit = FALSE))[summary.gbm(fit, plotit = FALSE)$rel.inf > 0] 
+  ))
+  return(Feature)
+}
+
+CalRiskScore <- function(fit, new_data, type = "lp"){
+  new_data <- new_data[, fit$subFeature]
+  RS <- quiet(switch(
+    EXPR = class(fit)[1],
+    "coxnet"      = predict(fit, type = 'link', as.matrix(new_data)),
+    "coxph"       = predict(fit, type = 'lp', as.data.frame(new_data)),
+    "survivalsvm" = predict(fit, as.data.frame(new_data))$predicted,
+    "CoxBoost"    = predict(fit, type = "lp", as.data.frame(new_data)),
+    "superpc"     = superpc.predict(object = fit,
+                                    data = fit$data,
+                                    newdata = list(x = t(scale(as.matrix(new_data)))),
+                                    threshold = fit$threshold,
+                                    n.components = 1)$v.pred,
+    "plsRcoxmodel" = predict(fit, type = "lp", as.data.frame(new_data)),
+    "rfsrc"        = predict(fit, as.data.frame(new_data))$predicted,
+    "gbm"          = predict(fit, type = 'link', as.data.frame(new_data))
+  ))
+  RS = as.vector(RS)
+  names(RS) = rownames(new_data)
+  return(RS)
+}
+
+RunEval <- function(fit, 
+                    Test_expr = NULL, 
+                    Test_surv = NULL, 
+                    Train_expr = NULL, 
+                    Train_surv = NULL, 
+                    Train_name = NULL,
+                    cohortVar = "Cohort",
+                    timeVar = "OS.time", 
+                    statusVar = "OS"){
+  
+  if(!is.element(cohortVar, colnames(Test_surv))) {
+    stop(paste0("There is no [", cohortVar, "] indicator, please fill in one more column!"))
+  } 
+  
+  if((!is.null(Train_expr)) & (!is.null(Train_surv))) {
+    new_data <- rbind.data.frame(Train_expr[, fit$subFeature],
+                                 Test_expr[, fit$subFeature])
+    
+    if(!is.null(Train_name)) {
+      Train_surv$Cohort <- Train_name
+    } else {
+      Train_surv$Cohort <- "Training"
+    }
+    colnames(Train_surv)[ncol(Train_surv)] <- cohortVar
+    Test_surv <- rbind.data.frame(Train_surv[,c(cohortVar, timeVar, statusVar)],
+                                  Test_surv[,c(cohortVar, timeVar, statusVar)])
+    Test_surv[,1] <- factor(Test_surv[,1], 
+                            levels = c(unique(Train_surv[,cohortVar]), setdiff(unique(Test_surv[,cohortVar]),unique(Train_surv[,cohortVar]))))
+  } else {
+    new_data <- Test_expr[, fit$subFeature]
+  }
+  
+  RS <- CalRiskScore(fit = fit, new_data = new_data)
+  
+  Predict.out <- Test_surv
+  Predict.out$RS <- as.vector(RS)
+  Predict.out <- split(x = Predict.out, f = Predict.out[,cohortVar])
+  f <- as.formula(paste0("Surv(", timeVar,",",statusVar,")~RS"))
+  unlist(lapply(Predict.out, function(data){
+    unname(summary(coxph(formula = f,
+                         data = data))$concordance["C"])
+  }))
+}
+
+SimpleHeatmap <- function(Cindex_mat = NULL, 
+                          avg_Cindex = NULL, 
+                          CohortCol = NULL, 
+                          barCol = NULL,
+                          col = c("#4195C1", "#FFFFFF", "#CB5746"),
+                          cellwidth = 1, cellheight = 0.5, 
+                          cluster_columns, cluster_rows){
+  col_ha = columnAnnotation("Cohort" = colnames(Cindex_mat),
+                            col = list("Cohort" = CohortCol),
+                            show_annotation_name = F)
+  
+  row_ha = rowAnnotation(bar = anno_barplot(avg_Cindex, bar_width = 0.8, border = FALSE,
+                                            gp = gpar(fill = barCol, col = NA),
+                                            add_numbers = T, numbers_offset = unit(-10, "mm"),
+                                            axis_param = list("labels_rot" = 0),
+                                            numbers_gp = gpar(fontsize = 9, col = "white"),
+                                            width = unit(3, "cm")),
+                         show_annotation_name = F)
+  
+  Heatmap(as.matrix(Cindex_mat), name = "C-index",
+          right_annotation = row_ha, 
+          top_annotation = col_ha,
+          col = col, 
+          rect_gp = gpar(col = "black", lwd = 1), 
+          cluster_columns = cluster_columns, cluster_rows = cluster_rows, 
+          show_column_names = FALSE, 
+          show_row_names = TRUE,
+          row_names_side = "left",
+          width = unit(cellwidth * ncol(Cindex_mat) + 2, "cm"),
+          height = unit(cellheight * nrow(Cindex_mat), "cm"),
+          column_split = factor(colnames(Cindex_mat), levels = colnames(Cindex_mat)), 
+          column_title = NULL,
+          cell_fun = function(j, i, x, y, w, h, col) { 
+            grid.text(label = format(Cindex_mat[i, j], digits = 3, nsmall = 3),
+                      x, y, gp = gpar(fontsize = 10))
+          }
+  )
+}
+
+standarize.fun <- function(indata, centerFlag, scaleFlag) {  
+  scale(indata, center=centerFlag, scale=scaleFlag)
+}
+
+scaleData <- function(data, cohort = NULL, centerFlags = NULL, scaleFlags = NULL){
+  samplename = rownames(data)
+  if (is.null(cohort)){
+    data <- list(data); names(data) = "training"
+  }else{
+    data <- split(as.data.frame(data), cohort)
+  }
+  
+  if (is.null(centerFlags)){
+    centerFlags = F; message("No centerFlags found, set as FALSE")
+  }
+  if (length(centerFlags)==1){
+    centerFlags = rep(centerFlags, length(data)); message("set centerFlags for all cohort as ", unique(centerFlags))
+  }
+  if (is.null(names(centerFlags))){
+    names(centerFlags) <- names(data); message("match centerFlags with cohort by order\n")
+  }
+  
+  if (is.null(scaleFlags)){
+    scaleFlags = F; message("No scaleFlags found, set as FALSE")
+  }
+  if (length(scaleFlags)==1){
+    scaleFlags = rep(scaleFlags, length(data)); message("set scaleFlags for all cohort as ", unique(scaleFlags))
+  }
+  if (is.null(names(scaleFlags))){
+    names(scaleFlags) <- names(data); message("match scaleFlags with cohort by order\n")
+  }
+  
+  centerFlags <- centerFlags[names(data)]; scaleFlags <- scaleFlags[names(data)]
+  outdata <- mapply(standarize.fun, indata = data, centerFlag = centerFlags, scaleFlag = scaleFlags, SIMPLIFY = F)
+  # lapply(out.data, function(x) summary(apply(x, 2, var)))
+  outdata <- do.call(rbind, outdata)
+  outdata <- outdata[samplename, ]
+  return(outdata)
+}
+
+work.path <- "XXXX"; setwd(work.path) 
+code.path <- file.path(work.path, "Codes") 
+data.path <- file.path(work.path, "InputData") 
+res.path <- file.path(work.path, "Results")
+fig.path <- file.path(work.path, "Figures") 
+if (!dir.exists(data.path)) dir.create(data.path)
+if (!dir.exists(res.path)) dir.create(res.path)
+if (!dir.exists(fig.path)) dir.create(fig.path)
+if (!dir.exists(code.path)) dir.create(code.path)
+library(openxlsx)
+library(seqinr)
+library(plyr)
+library(survival)
+library(randomForestSRC)
+library(glmnet)
+library(plsRcox)
+library(superpc)
+library(gbm)
+library(mixOmics)
+library(survcomp)
+library(CoxBoost)
+library(survivalsvm)
+library(BART)
+library(snowfall)
+library(ComplexHeatmap)
+library(RColorBrewer)
+FinalModel <- c("panML", "multiCox")[2]
+Train_expr <- read.table(file.path(data.path, "Training_expr.txt"), header = T, sep = "\t", row.names = 1,check.names = F,stringsAsFactors = F)
+Train_surv <- read.table(file.path(data.path, "Training_surv.txt"), header = T, sep = "\t", row.names = 1,check.names = F,stringsAsFactors = F)
+comsam <- intersect(rownames(Train_surv), colnames(Train_expr))
+Train_expr <- Train_expr[,comsam]; Train_surv <- Train_surv[comsam,,drop = F]
+Test_expr <- read.table(file.path(data.path, "Testing_expr.txt"), header = T, sep = "\t", row.names = 1,check.names = F,stringsAsFactors = F)
+Test_surv <- read.table(file.path(data.path, "Testing_surv.txt"), header = T, sep = "\t", row.names = 1,check.names = F,stringsAsFactors = F)
+comsam <- intersect(rownames(Test_surv), colnames(Test_expr))
+Test_expr <- Test_expr[,comsam]; Test_surv <- Test_surv[comsam,,drop = F]
+comgene <- intersect(rownames(Train_expr),rownames(Test_expr))
+Train_expr <- t(Train_expr[comgene,])
+Test_expr <- t(Test_expr[comgene,]) 
+Train_set = scaleData(data = Train_expr, centerFlags = T, scaleFlags = T) 
+names(x = split(as.data.frame(Test_expr), f = Test_surv$Cohort)) 
+Test_set = scaleData(data = Test_expr, cohort = Test_surv$Cohort, centerFlags = T, scaleFlags = T)
+methods <- read.xlsx(file.path(data.path, "ML.xlsx"), startRow = 2)$Model
+methods <- gsub("-| ", "", methods)
+min.selected.var <- 5
+timeVar = "OS.time"; statusVar = "OS"
+Variable = colnames(Train_expr)
+preTrain.method =  strsplit(methods, "\\+")
+preTrain.method = lapply(preTrain.method, function(x) rev(x)[-1])
+preTrain.method = unique(unlist(preTrain.method))
+preTrain.method
+set.seed(seed = 123) 
+preTrain.var <- list()
+for (method in preTrain.method){
+  preTrain.var[[method]] = RunML(method = method, 
+                                 Train_expr = Train_set, 
+                                 Train_surv = Train_surv, 
+                                 mode = "Variable",      
+                                 classVar = classVar) 
+}
+preTrain.var[["simple"]] <- colnames(Train_expr)
+
+model <- list() 
+for (method in methods){ 
+  cat(match(method, methods), ":", method, "\n") 
+  method_name = method 
+  method <- strsplit(method, "\\+")[[1]] 
+  
+  if (length(method) == 1) method <- c("simple", method)
+  
+  selected.var = preTrain.var[[method[1]]]
+  if (length(selected.var) <= min.selected.var) {
+    model[[method_name]] <- NULL
+  } else {
+    model[[method_name]] <- RunML(method = method[2], 
+                                  Train_expr = Train_expr[, selected.var],
+                                  Train_surv = Train_surv, 
+                                  mode = "Model",     
+                                  classVar = classVar)
+  }
+  if(length(ExtractVar(model[[method_name]])) <= min.selected.var) {
+    model[[method_name]] <- NULL
+  }
+}
+saveRDS(model, file.path(res.path, "model.rds")) 
+model <- readRDS(file.path(res.path, "model.rds")) 
+methodsValid <- names(model) 
+RS_list <- list()
+for (method in methodsValid){
+  RS_list[[method]] <- CalRiskScore(fit = model[[method]], 
+                                    new_data = rbind.data.frame(Train_set,Test_set),
+                                    type = "lp") 
+  
+}
+RS_mat <- as.data.frame(t(do.call(rbind, RS_list)))
+write.table(RS_mat, file.path(res.path, "RS_mat.txt"),sep = "\t", row.names = T, col.names = NA, quote = F) 
+fea_list <- list()
+for (method in methodsValid) {
+  fea_list[[method]] <- ExtractVar(model[[method]]) 
+}
+
+fea_df <- lapply(model, function(fit){ data.frame(ExtractVar(fit)) }) 
+fea_df <- do.call(rbind, fea_df)
+fea_df$algorithm <- gsub("(.+)\\.(.+$)", "\\1", rownames(fea_df))
+colnames(fea_df)[1] <- "features"  
+write.table(fea_df, file.path(res.path, "fea_df.txt"),sep = "\t", row.names = F, col.names = T, quote = F)
+Cindexlist <- list()
+for (method in methodsValid){
+  Cindexlist[[method]] <- RunEval(fit = model[[method]],
+                                  Test_expr = Test_set, 
+                                  Test_surv = Test_surv, 
+                                  Train_expr = Train_set, 
+                                  Train_surv = Train_surv, 
+                                  Train_name = "Train",
+                                  #Train_expr = NULL,
+                                  #Train_surv = NULL, 
+                                  cohortVar = "Cohort", 
+                                  timeVar = timeVar, 
+                                  statusVar = statusVar) 
+}
+Cindex_mat <- do.call(rbind, Cindexlist)
+write.table(Cindex_mat, file.path(res.path, "cindex_mat.txt"),sep = "\t", row.names = T, col.names = T, quote = F)
+
+##########ML画图########
+Cindex_mat <- read.table( "cindex_mat.txt",sep = "\t", row.names = 1, header = T,check.names = F,stringsAsFactors = F)
+avg_Cindex <- sort(apply(Cindex_mat, 1, mean), decreasing = T) 
+Cindex_mat <- Cindex_mat[names(avg_Cindex), ] 
+avg_Cindex <- as.numeric(format(avg_Cindex, digits = 3, nsmall = 3)) 
+fea_sel <- fea_list[[rownames(Cindex_mat)[1]]]
+CohortCol <- brewer.pal(n = ncol(Cindex_mat), name = "Paired") 
+names(CohortCol) <- colnames(Cindex_mat)
+cellwidth = 1; cellheight = 0.5
+hm <- SimpleHeatmap(Cindex_mat = Cindex_mat,
+                    avg_Cindex = avg_Cindex, 
+                    CohortCol = CohortCol,
+                    barCol = "steelblue", 
+                    col = c("#1CB8B2", "#FFFFFF", "#EEB849"), 
+                    cellwidth = cellwidth, cellheight = cellheight, 
+                    cluster_columns = F, cluster_rows = F) 
+
+pdf(file.path(fig.path, "heatmap of cindex.pdf"), width = cellwidth * ncol(Cindex_mat) + 3, height = cellheight * nrow(Cindex_mat) * 0.45)
+draw(hm, heatmap_legend_side = "right", annotation_legend_side = "right") 
+invisible(dev.off())
 ####模型生存曲线和ROC分析####
 setwd('D:\\7.模型生存曲线和ROC分析')
 library(survival)
@@ -673,7 +1305,7 @@ p <-  ggsurvplot(fit,
                  ggtheme = theme_bw(), 
                  main = "Survival curve",
                  font.main = c(35, "bold", "darkblue")
-   )
+)
 print(p, newpage = FALSE)
 dev.off()
 
@@ -681,7 +1313,7 @@ rt <- read.table("expTime.txt", header=T, sep="\t", check.names=F,row.names = 1)
 Cohort <- c('Test','Train'
 )
 for (i in Cohort) {
-   data <- subset(rt,Cohort == i)
+  data <- subset(rt,Cohort == i)
   colnames(data)=c(  "fustat", "futime","gene",'Cohort')
   Type=ifelse(data[,'gene']<= 0.1078487, "low", "high")
   data$group=Type
@@ -707,7 +1339,7 @@ for (i in Cohort) {
                   risk.table.height=.25,
                   ggtheme = theme_bw(), 
                   main = "Survival curve"
-      )
+  )
   print(p, newpage = FALSE)
   dev.off()
   
@@ -780,9 +1412,9 @@ p <- quickcor(mtcars,
               cor.test = TRUE,
               method = "pearson") +
   geom_pie2(data = get_data(type = "lower"))+ 
-   geom_mark(data = get_data(type = "upper", r != 1, p.value < 0.05, abs(r) >= 0.3), #
+  geom_mark(data = get_data(type = "upper", r != 1, p.value < 0.05, abs(r) >= 0.3), #
             size = 2.5 
-           )+
+  )+
   geom_cross(data = get_data(type = "lower"), colour = "orange")+ 
   
   scale_fill_gradientn(colours = mycolors,  
@@ -846,7 +1478,7 @@ for(j in rownames(data)){
   cor=corT$estimate
   pvalue=corT$p.value
   outTab=rbind(outTab, cbind(Query=gene, Gene=j, cor, pvalue))
-if((abs(cor)>corFilter) & (pvalue<pFilter)){
+  if((abs(cor)>corFilter) & (pvalue<pFilter)){
     df1=as.data.frame(cbind(x,y))
     p1=ggplot(df1, aes(x, y)) + 
       xlab(paste0(gene))+ ylab(j)+
@@ -936,7 +1568,7 @@ lapply(1:length(ggterm), function(i){
   gseaNb(object =go, 
          geneSetID =ggterm[i], newGsea = F,
          termWidth = 30,
-       
+         
          arrowType = 'open',
          geneCol = 'black',
          subPlot = 3,rmSegment = F,
@@ -1216,7 +1848,7 @@ p <-  ggsurvplot(fit,
                  ggtheme = theme_bw(), 
                  main = "Survival curve",
                  font.main = c(35, "bold", "darkblue"),
-  )
+)
 print(p, newpage = FALSE)
 dev.off()
 #########PLA2G7和免疫细胞相关性分析########
@@ -1352,7 +1984,7 @@ save(scRNA_harmony, file = "mouserep.Rdata")
 sce<- scRNA_harmony
 pcSelect=30
 for (res in c(0.1,0.2,0.3, 0.4, 0.5, 0.6, 0.7, 0.8,0.9,1)) {
- 
+  
   print(res)
   sce <- FindClusters(sce, graph.name = "RNA_snn", resolution = res, algorithm = 1)
 } 
@@ -1494,10 +2126,10 @@ pdf(file="macdot.pdf",width = 5.62,height =3.3)
 jjDotPlot(object =sce,
           gene =c('Pla2g7','Spp1'),
           id = 'orig.ident',
-           split.by.aesGroup =T, 
+          split.by.aesGroup =T, 
           xtree =F,ytree =F,
           rescale = T,rescale.min = -2,rescale.max =2,   midpoint = 0, dot.col = c('grey','white','orange'),
-  )
+)
 dev.off()
 pdf(file="tsnepla2g7.pdf",width =14,height =14)
 FeatureCornerAxes(object = sce,reduction = 'tsne',
